@@ -77,21 +77,47 @@
             content: '';
             position: fixed;
             inset: 0;
-            background: radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, .05) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(14, 116, 144, .04) 0%, transparent 50%);
-            background-size: 200% 200%;
+            background:
+                radial-gradient(circle at 1px 1px, rgba(6, 182, 212, .18) 1.5px, transparent 0),
+                radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, .06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(14, 116, 144, .05) 0%, transparent 50%);
+            background-size: 32px 32px, 200% 200%, 200% 200%;
             animation: bgShift 12s ease-in-out infinite alternate;
             pointer-events: none;
             z-index: 0
         }
 
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                linear-gradient(rgba(6, 182, 212, .06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(6, 182, 212, .06) 1px, transparent 1px);
+            background-size: 80px 80px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
         [data-theme="light"] body::before,
         [data-theme="light"]::before {
-            background: radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, .06) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(14, 116, 144, .04) 0%, transparent 50%);
+            background:
+                radial-gradient(circle at 1px 1px, rgba(14, 116, 144, .15) 1.5px, transparent 0),
+                radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, .07) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(14, 116, 144, .05) 0%, transparent 50%);
+            background-size: 32px 32px, 200% 200%, 200% 200%;
+        }
+
+        [data-theme="light"] body::after {
+            background:
+                linear-gradient(rgba(14, 116, 144, .07) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(14, 116, 144, .07) 1px, transparent 1px);
+            background-size: 80px 80px;
         }
 
         @keyframes bgShift {
-            0% { background-position: 0% 0%; }
-            100% { background-position: 100% 100%; }
+            0% { background-position: 0px 0px, 0% 0%, 0% 0%; }
+            100% { background-position: 16px 16px, 100% 100%, 100% 100%; }
         }
 
         /* ========== TOP NAVBAR ========== */
