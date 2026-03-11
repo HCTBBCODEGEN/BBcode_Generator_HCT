@@ -77,7 +77,9 @@
             content: '';
             position: fixed;
             inset: 0;
-            background: radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, .04) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(14, 116, 144, .03) 0%, transparent 50%);
+            background: radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, .05) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(14, 116, 144, .04) 0%, transparent 50%);
+            background-size: 200% 200%;
+            animation: bgShift 12s ease-in-out infinite alternate;
             pointer-events: none;
             z-index: 0
         }
@@ -85,6 +87,11 @@
         [data-theme="light"] body::before,
         [data-theme="light"]::before {
             background: radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, .06) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(14, 116, 144, .04) 0%, transparent 50%);
+        }
+
+        @keyframes bgShift {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 100% 100%; }
         }
 
         /* ========== TOP NAVBAR ========== */
@@ -156,6 +163,20 @@
             transition: all .25s ease;
             position: relative;
             border-radius: 8px;
+            animation: navTabSlide .5s ease-out backwards;
+        }
+
+        .nav-tab:nth-child(1) { animation-delay: .1s; }
+        .nav-tab:nth-child(2) { animation-delay: .18s; }
+        .nav-tab:nth-child(3) { animation-delay: .26s; }
+        .nav-tab:nth-child(4) { animation-delay: .34s; }
+        .nav-tab:nth-child(5) { animation-delay: .42s; }
+        .nav-tab:nth-child(6) { animation-delay: .5s; }
+        .nav-tab:nth-child(7) { animation-delay: .58s; }
+
+        @keyframes navTabSlide {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .nav-tab:hover {
@@ -171,6 +192,13 @@
             background: linear-gradient(135deg, var(--accent), var(--primary-dark));
             border-color: var(--accent);
             box-shadow: 0 2px 16px rgba(6, 182, 212, .35);
+            animation: navTabActive .4s ease;
+        }
+
+        @keyframes navTabActive {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
 
         /* ========== HERO SECTION ========== */
@@ -186,6 +214,17 @@
             height: 64px;
             margin: 0 auto 1.2rem;
             filter: drop-shadow(0 0 20px rgba(230, 81, 0, .3));
+            animation: heroFloat 4s ease-in-out infinite, heroFadeIn .8s ease-out backwards;
+        }
+
+        @keyframes heroFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        @keyframes heroFadeIn {
+            from { opacity: 0; transform: translateY(20px) scale(.9); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .hero-logo img {
@@ -198,18 +237,26 @@
             font-size: 2.2rem;
             font-weight: 800;
             background: linear-gradient(135deg, var(--primary-light), #a5f3fc, var(--accent));
+            background-size: 200% 200%;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             margin-bottom: .4rem;
             letter-spacing: -0.5px;
             text-transform: uppercase;
+            animation: heroFadeIn .8s ease-out .15s backwards, titleShimmer 4s ease-in-out infinite;
+        }
+
+        @keyframes titleShimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
 
         .hero-subtitle {
             font-size: .85rem;
             color: var(--text-muted);
             font-weight: 400;
+            animation: heroFadeIn .8s ease-out .3s backwards;
         }
 
         .hero-desc {
@@ -221,36 +268,56 @@
             margin-left: auto;
             margin-right: auto;
             line-height: 1.7;
+            animation: heroFadeIn .8s ease-out .45s backwards;
         }
 
         .hero-desc .heart {
             color: #ef4444;
             font-size: 1rem;
+            display: inline-block;
             animation: heartbeat 1.5s ease-in-out infinite;
         }
 
         @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            15% { transform: scale(1.25); }
+            30% { transform: scale(1); }
+            45% { transform: scale(1.15); }
+            60% { transform: scale(1); }
+        }
 
-            0%,
-            100% {
-                transform: scale(1);
-            }
+        /* ========== SCROLL REVEAL ========== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity .7s cubic-bezier(.4, 0, .2, 1), transform .7s cubic-bezier(.4, 0, .2, 1);
+        }
 
-            15% {
-                transform: scale(1.15);
-            }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
-            30% {
-                transform: scale(1);
-            }
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(-30px);
+            transition: opacity .7s cubic-bezier(.4, 0, .2, 1), transform .7s cubic-bezier(.4, 0, .2, 1);
+        }
 
-            45% {
-                transform: scale(1.1);
-            }
+        .reveal-left.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
 
-            60% {
-                transform: scale(1);
-            }
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(.85);
+            transition: opacity .6s ease-out, transform .6s ease-out;
+        }
+
+        .reveal-scale.visible {
+            opacity: 1;
+            transform: scale(1);
         }
 
         /* ========== WELCOME CARDS ========== */
@@ -286,18 +353,40 @@
             padding: 1.5rem;
             text-align: center;
             transition: all .3s ease;
+            opacity: 0;
+            transform: translateY(25px);
         }
+
+        .feature-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .feature-card:nth-child(1) { transition-delay: 0s; }
+        .feature-card:nth-child(2) { transition-delay: .15s; }
+        .feature-card:nth-child(3) { transition-delay: .3s; }
 
         .feature-card:hover {
             border-color: rgba(6, 182, 212, .3);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(6, 182, 212, .15);
         }
 
         .feature-icon {
             font-size: 2rem;
             margin-bottom: .75rem;
-            display: block;
+            display: inline-block;
+            animation: iconBounce 2s ease-in-out infinite;
+            animation-play-state: paused;
+        }
+
+        .feature-card.visible .feature-icon {
+            animation-play-state: running;
+        }
+
+        @keyframes iconBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
         }
 
         .feature-card h3 {
@@ -331,7 +420,19 @@
 
         .stat-item {
             text-align: center;
+            opacity: 0;
+            transform: scale(.8);
+            transition: opacity .5s ease, transform .5s ease;
         }
+
+        .stat-item.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .stat-item:nth-child(1) { transition-delay: .1s; }
+        .stat-item:nth-child(2) { transition-delay: .25s; }
+        .stat-item:nth-child(3) { transition-delay: .4s; }
 
         .stat-value {
             font-size: 1.5rem;
@@ -356,11 +457,237 @@
             color: var(--text-muted);
             font-size: .8rem;
             padding: 1rem 0;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity .6s ease .5s, transform .6s ease .5s;
+        }
+
+        .cta-hint.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .cta-hint span {
             color: var(--primary-light);
             font-weight: 600;
+        }
+
+        /* ========== HOW IT WORKS ========== */
+        .how-section {
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .how-title {
+            text-align: center;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .how-steps {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        @media(max-width: 700px) {
+            .how-steps {
+                flex-direction: column;
+            }
+        }
+
+        .how-step {
+            flex: 1;
+            text-align: center;
+            padding: 1.2rem;
+            position: relative;
+        }
+
+        .how-step-number {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--primary-dark));
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: .75rem;
+            box-shadow: 0 2px 12px rgba(6, 182, 212, .3);
+        }
+
+        .how-step h4 {
+            font-size: .85rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: .35rem;
+        }
+
+        .how-step p {
+            font-size: .75rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .how-connector {
+            display: flex;
+            align-items: center;
+            color: var(--accent);
+            font-size: 1.2rem;
+            padding-top: 1.2rem;
+            opacity: .4;
+        }
+
+        @media(max-width: 700px) {
+            .how-connector {
+                justify-content: center;
+                padding-top: 0;
+                transform: rotate(90deg);
+            }
+        }
+
+        /* ========== TEMPLATE LIST ========== */
+        .template-list-section {
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .template-list-title {
+            text-align: center;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .template-list-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: .75rem;
+        }
+
+        .template-list-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .template-list-card:hover {
+            border-color: rgba(6, 182, 212, .4);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(6, 182, 212, .15);
+        }
+
+        .template-list-card:active {
+            transform: scale(.97);
+        }
+
+        .template-list-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .template-list-name {
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .template-list-desc {
+            font-size: .68rem;
+            color: var(--text-muted);
+            margin-top: .15rem;
+        }
+
+        /* ========== TEMPLATE INFO BANNER ========== */
+        .template-info-banner {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1.2rem;
+            align-items: flex-start;
+            animation: fiu .5s ease-out;
+        }
+
+        .template-info-icon {
+            font-size: 2.5rem;
+            flex-shrink: 0;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(6, 182, 212, .08);
+            border-radius: 14px;
+            border: 1px solid rgba(6, 182, 212, .15);
+        }
+
+        .template-info-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .template-info-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: .3rem;
+        }
+
+        .template-info-desc {
+            font-size: .82rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: .6rem;
+        }
+
+        .template-info-meta {
+            display: flex;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+        }
+
+        .template-info-meta span {
+            font-size: .72rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            background: rgba(6, 182, 212, .06);
+            padding: .25rem .6rem;
+            border-radius: 6px;
+            border: 1px solid rgba(6, 182, 212, .1);
+        }
+
+        @media(max-width: 500px) {
+            .template-info-banner {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .template-info-meta {
+                justify-content: center;
+            }
         }
 
         /* ========== MAIN CONTAINER ========== */
@@ -1326,9 +1653,89 @@
             </div>
         </div>
 
+        <!-- How it works -->
+        <div class="how-section reveal">
+            <div class="how-title">💡 Comment ça marche ?</div>
+            <div class="how-steps">
+                <div class="how-step">
+                    <div class="how-step-number">1</div>
+                    <h4>Choisissez un template</h4>
+                    <p>Sélectionnez le type de dossier que vous souhaitez remplir parmi les 7 modèles disponibles.</p>
+                </div>
+                <div class="how-connector">→</div>
+                <div class="how-step">
+                    <div class="how-step-number">2</div>
+                    <h4>Remplissez le formulaire</h4>
+                    <p>Complétez les champs avec vos informations. Tout est guidé, rien de compliqué !</p>
+                </div>
+                <div class="how-connector">→</div>
+                <div class="how-step">
+                    <div class="how-step-number">3</div>
+                    <h4>Copiez le BBCode</h4>
+                    <p>Cliquez sur "Générer", puis copiez le code et collez-le directement sur le forum.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Template list -->
+        <div class="template-list-section reveal">
+            <div class="template-list-title">📂 Templates disponibles</div>
+            <div class="template-list-grid" id="template-list-grid">
+                <div class="template-list-card" onclick="document.getElementById('btn-internat').click()">
+                    <span class="template-list-icon">🎓</span>
+                    <div>
+                        <div class="template-list-name">Candidature Internat</div>
+                        <div class="template-list-desc">Dossier pour les candidatures d'internat médical</div>
+                    </div>
+                </div>
+                <div class="template-list-card" onclick="document.getElementById('btn-candidature').click()">
+                    <span class="template-list-icon">📝</span>
+                    <div>
+                        <div class="template-list-name">Candidature Générale</div>
+                        <div class="template-list-desc">Dossier de candidature standard HCT</div>
+                    </div>
+                </div>
+                <div class="template-list-card" onclick="document.getElementById('btn-surete').click()">
+                    <span class="template-list-icon">🛡️</span>
+                    <div>
+                        <div class="template-list-name">Candidature Sûreté</div>
+                        <div class="template-list-desc">Candidature pour la sûreté hospitalière</div>
+                    </div>
+                </div>
+                <div class="template-list-card" onclick="document.getElementById('btn-medecin').click()">
+                    <span class="template-list-icon">🩺</span>
+                    <div>
+                        <div class="template-list-name">Candidature Médecin</div>
+                        <div class="template-list-desc">Candidature avec spécialité médicale</div>
+                    </div>
+                </div>
+                <div class="template-list-card" onclick="document.getElementById('btn-candidature_classique').click()">
+                    <span class="template-list-icon">📋</span>
+                    <div>
+                        <div class="template-list-name">Candidature Classique</div>
+                        <div class="template-list-desc">Format classique de candidature</div>
+                    </div>
+                </div>
+                <div class="template-list-card" onclick="document.getElementById('btn-reintegration').click()">
+                    <span class="template-list-icon">🔄</span>
+                    <div>
+                        <div class="template-list-name">Réintégration</div>
+                        <div class="template-list-desc">Dossier de réintégration au sein de l'HCT</div>
+                    </div>
+                </div>
+                <div class="template-list-card" onclick="document.getElementById('btn-formation').click()">
+                    <span class="template-list-icon">🏫</span>
+                    <div>
+                        <div class="template-list-name">Demande Formation</div>
+                        <div class="template-list-desc">Demande à l'organisme de formation</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="cta-hint">
-            <span class="cta-desktop">👆 Sélectionnez un <span>template</span> dans la barre ci-dessus pour commencer</span>
-            <span class="cta-mobile">👆 Appuyez sur le bouton <span>Templates</span> en haut à droite pour commencer</span>
+            <span class="cta-desktop">👆 Sélectionnez un <span>template</span> dans la barre ci-dessus ou cliquez sur une carte pour commencer</span>
+            <span class="cta-mobile">👆 Appuyez sur le bouton <span>Templates</span> en haut à droite ou sur une carte ci-dessus</span>
         </div>
     </div>
 
@@ -1445,6 +1852,24 @@
                 var btn = document.getElementById('theme-toggle');
                 if (btn) btn.textContent = '☀️';
             }
+        })();
+        // ========== SCROLL REVEAL ANIMATIONS ==========
+        (function () {
+            var revealElements = document.querySelectorAll('.feature-card, .stat-item, .cta-hint, .reveal, .reveal-left, .reveal-scale');
+            if (!('IntersectionObserver' in window)) {
+                // Fallback: show everything immediately
+                revealElements.forEach(function (el) { el.classList.add('visible'); });
+                return;
+            }
+            var observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.15, rootMargin: '0px 0px -30px 0px' });
+            revealElements.forEach(function (el) { observer.observe(el); });
         })();
     </script>
 </body>
