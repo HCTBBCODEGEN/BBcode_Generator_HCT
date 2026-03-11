@@ -1,528 +1,1903 @@
-// ============================================================
-// HCT Healthcare — BBCode Generator (Form-based)
-// ============================================================
-(function () {
-    'use strict';
+<!DOCTYPE html>
+<html lang="fr">
 
-    // --- DOM refs ---
-    var tgEl = document.getElementById('tg-container');
-    var fcEl = document.getElementById('fc');
-    var formCard = document.getElementById('form-card');
-    var heroTitle = document.getElementById('hero-title');
-    var heroSubtitle = document.getElementById('hero-subtitle');
-    var heroDesc = document.getElementById('hero-desc');
-    var welcomeSection = document.getElementById('welcome-section');
-    var outputArea = document.getElementById('output-area');
-    var bbOutput = document.getElementById('bbcode-output');
-    var previewCard = document.getElementById('preview-card');
-    var previewEl = document.getElementById('preview');
-    var toastEl = document.getElementById('toast');
-    var toastMsg = document.getElementById('toast-msg');
-    var activeTemplate = null;
-
-    // --- Helper: create field HTML ---
-    function fieldHTML(f, cls) {
-        var c = cls || '';
-        var h = '<div class="fi ' + c + '"><label for="f_' + f.id + '">' + f.label + '</label>';
-        if (f.type === 'select') {
-            h += '<select id="f_' + f.id + '">';
-            f.options.forEach(function (o) { h += '<option value="' + o + '">' + o + '</option>'; });
-            h += '</select>';
-        } else if (f.type === 'textarea') {
-            h += '<textarea id="f_' + f.id + '" placeholder="' + (f.ph || '') + '" rows="' + (f.rows || 3) + '"></textarea>';
-        } else {
-            h += '<input type="' + (f.type || 'text') + '" id="f_' + f.id + '" placeholder="' + (f.ph || '') + '">';
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HCT Healthcare — Générateur BBCode</title>
+    <link rel="icon" type="image/png" href="monlogo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0e7490;
+            --primary-light: #22d3ee;
+            --primary-dark: #065666;
+            --accent: #06b6d4;
+            --bg-dark: #0a0e1a;
+            --bg-card: #111827;
+            --bg-input: #1a2235;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: #1e293b;
+            --border-card: #1e3a5f;
+            --success: #10b981;
+            --danger: #ef4444;
+            --radius: 12px;
+            --tr: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --navbar-bg: rgba(10, 14, 26, .95);
+            --nav-tab-bg: rgba(30, 41, 59, .5);
         }
-        return h + '</div>';
-    }
 
-    // --- Get field value ---
-    function v(id) {
-        var el = document.getElementById('f_' + id);
-        return el ? el.value.trim() || 'Rep' : 'Rep';
-    }
-    function vr(id) {
-        var el = document.getElementById('f_' + id);
-        return el ? el.value.trim() : '';
-    }
+        [data-theme="light"] {
+            --bg-dark: #f0f4f8;
+            --bg-card: #ffffff;
+            --bg-input: #e8ecf1;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #cbd5e1;
+            --border-card: #94a3b8;
+            --navbar-bg: rgba(255, 255, 255, .95);
+            --nav-tab-bg: rgba(226, 232, 240, .7);
+        }
 
-    // --- Common field sets ---
-    var infoPerso = [
-        { id: 'nom', label: 'Nom', ph: 'Votre nom de famille' },
-        { id: 'prenom', label: 'Prénom', ph: 'Votre prénom' },
-        { id: 'civilite', label: 'Civilité', type: 'select', options: ['Homme', 'Femme'] },
-        { id: 'nationalite', label: 'Nationalité', ph: 'Ex: Américaine' },
-        { id: 'ddn', label: 'Date de naissance', ph: 'JJ/MM/AAAA' },
-        { id: 'ldn', label: 'Lieu de naissance', ph: 'Ex: Nashville, TN' },
-        { id: 'adresse', label: 'Adresse', ph: 'Ex: 127 Fox Hollow Av., Townsend, TN', cls: 'fw' },
-        { id: 'permis', label: 'Permis possédé(s)', ph: 'Ex: A / B' }
-    ];
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
 
-    var infoMedicale = [
-        { id: 'lunettes', label: 'Port des lunettes de vue', type: 'select', options: ['Non', 'Oui'] },
-        { id: 'traitement', label: 'Traitement(s) particulier(s)', ph: 'Problème d\'asthme...' },
-        { id: 'oeil_g', label: 'Œil gauche (/10)', type: 'select', options: ['10', '9', '8', '7', '6', '5', '4', '3', '2', '1'] },
-        { id: 'oeil_d', label: 'Œil droit (/10)', type: 'select', options: ['10', '9', '8', '7', '6', '5', '4', '3', '2', '1'] },
-        { id: 'taille', label: 'Taille (cm)', ph: '180', type: 'number' },
-        { id: 'poids', label: 'Masse (kg)', ph: '75', type: 'number' }
-    ];
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            transition: background .4s, color .4s;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
 
-    var sigFields = [
-        { id: 'date_fait', label: 'Fait le', ph: 'JJ/MM/AAAA' },
-        { id: 'lieu_fait', label: 'À', ph: 'Nashville' }
-    ];
+        input, textarea, select, #bbcode-output, .pv {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
 
-    var oocDiscord = [
-        { id: 'serveur', label: 'Serveur souhaité', type: 'select', options: ['#1', '#2'] },
-        { id: 'discord', label: 'Pseudo Discord', ph: 'MonPseudo' }
-    ];
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 1px 1px, rgba(6, 182, 212, .18) 1.5px, transparent 0),
+                radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, .06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(14, 116, 144, .05) 0%, transparent 50%);
+            background-size: 32px 32px, 200% 200%, 200% 200%;
+            animation: bgShift 12s ease-in-out infinite alternate;
+            pointer-events: none;
+            z-index: 0
+        }
 
-    var oocFull = [
-        { id: 'serveur', label: 'Serveur souhaité', type: 'select', options: ['#1', '#2'] },
-        { id: 'discord', label: 'Avez-vous Discord ? (pseudo)', ph: 'MonPseudo' },
-        { id: 'anciens_noms', label: 'Anciens noms IG', ph: 'Eddie Thawn' },
-        { id: 'lien_forum', label: 'Lien compte forum GTACity', ph: 'https://gtacityrp.fr/index.php?members/...' },
-        { id: 'histoire', label: 'Histoire du personnage (3 lignes min.)', type: 'textarea', ph: 'Racontez l\'histoire de votre personnage...', rows: 4, cls: 'fw' }
-    ];
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                linear-gradient(rgba(6, 182, 212, .06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(6, 182, 212, .06) 1px, transparent 1px);
+            background-size: 80px 80px;
+            pointer-events: none;
+            z-index: 0;
+        }
 
-    var oocTS = [
-        { id: 'serveur', label: 'Serveur souhaité', type: 'select', options: ['#1', '#2'] },
-        { id: 'ts3', label: 'Avez-vous TeamSpeak 3 ?', ph: 'Oui / Non' },
-        { id: 'anciens_noms', label: 'Anciens noms IG', ph: 'Eddie Thawn' },
-        { id: 'lien_forum', label: 'Lien compte forum GTACity', ph: 'https://gtacityrp.fr/index.php?members/...' },
-        { id: 'histoire', label: 'Histoire du personnage (3 lignes min.)', type: 'textarea', ph: 'Racontez l\'histoire de votre personnage...', rows: 4, cls: 'fw' }
-    ];
+        [data-theme="light"] body::before,
+        [data-theme="light"]::before {
+            background:
+                radial-gradient(circle at 1px 1px, rgba(14, 116, 144, .15) 1.5px, transparent 0),
+                radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, .07) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(14, 116, 144, .05) 0%, transparent 50%);
+            background-size: 32px 32px, 200% 200%, 200% 200%;
+        }
 
-    // ============================================================
-    // TEMPLATE DEFINITIONS
-    // ============================================================
-    var templates = {
+        [data-theme="light"] body::after {
+            background:
+                linear-gradient(rgba(14, 116, 144, .07) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(14, 116, 144, .07) 1px, transparent 1px);
+            background-size: 80px 80px;
+        }
 
-        // -------- 1. INTERNAT --------
-        internat: {
-            name: 'Candidature Internat', icon: '🎓',
-            desc: 'Dossier complet pour postuler en tant qu\'interne médical. Inclut les informations personnelles, médicales, des questions d\'automatisme et une mise en situation.',
-            sections: [
-                { title: 'Informations personnelles', fields: infoPerso },
-                {
-                    title: 'Parcours professionnel & diplômes', fields: [
-                        { id: 'diplomes', label: 'Diplôme(s) obtenu(s)', ph: 'High School Diploma, etc.', cls: 'fw' },
-                        { id: 'professions', label: 'Profession(s) antérieure(s)', ph: 'Charpentier', cls: 'fw' },
-                        { id: 'affectation', label: 'Affectation souhaitée', type: 'select', options: ['TMC Townsend', 'NMH Nashville'], cls: 'fw' }
-                    ]
-                },
-                { title: 'Informations médicales', fields: infoMedicale },
-                {
-                    title: 'Automatisme — Questions', fields: [
-                        { id: 'q_spo2', label: 'Définissez simplement le terme SpO2', type: 'textarea', ph: 'Votre réponse...', rows: 2, cls: 'fw' },
-                        { id: 'q_naloxone', label: 'Plus simplement, le naloxone est ?', type: 'textarea', ph: 'Votre réponse...', rows: 2, cls: 'fw' },
-                        { id: 'q_dextro', label: 'Que permet de mesurer le Dextro ?', type: 'textarea', ph: 'Votre réponse...', rows: 2, cls: 'fw' },
-                        { id: 'q_glasgow', label: 'Que permet d\'évaluer le score sur l\'échelle Glasgow ?', type: 'textarea', ph: 'Votre réponse...', rows: 2, cls: 'fw' }
-                    ]
-                },
-                {
-                    title: 'Mise en situation', fields: [
-                        { id: 'q_accident', label: 'Que feriez-vous lors de votre arrivée sur un accident ?', type: 'textarea', ph: 'Décrivez votre démarche...', rows: 4, cls: 'fw' }
-                    ]
-                },
-                { title: 'Signature', fields: sigFields },
-                { title: 'OOC — Informations hors-jeu', fields: oocDiscord }
-            ],
-            generate: function () {
-                return '[hide]\n\n[table style="border:1px solid black; background-color:#ffffff; padding:10px; font-family:arial; color:#000000; width:100%;margin:auto;"]\n[tr][td]\n[center][img(500px,250px)]https://zupimages.net/up/23/09/2rts.png[/img][/center]\n\n[center][b][size=18]DOSSIER DE CANDIDATURE - INTERNAT[/size][/b][/center]\n\n[hr]\n\n[left][b][u]Informations personnelles:[/u][/b]\n\n[b]Nom[/b]: ' + v('nom') + '\n[b]Prénom[/b]: ' + v('prenom') + '\n[b]Civilité[/b]: ' + v('civilite') + '\n[b]Nationalité[/b]: ' + v('nationalite') + '\n\n[b]Date de naissance[/b]: ' + v('ddn') + '\n[b]Lieu de naissance[/b]: ' + v('ldn') + '\n[b]Adresse[/b]: ' + v('adresse') + '\n\n[b]Permis possédé(s)[/b]: ' + v('permis') + '\n\n[b][u]Parcours professionnel(s) et diplôme(s):[/u][/b]\n\n[b]Diplôme(s) obtenu(s)[/b]: ' + v('diplomes') + '\n\n[b]Profession(s) antérieure(s)[/b]: ' + v('professions') + '\n\n[b]Affectation souhaité :[/b] TMC Townsend - NMH Nashville [size=12](Rayer les mentions inutiles)[/size]\n[i][size=10](Il s\'agit de l\'établissement hospitalier où vous souhaitez être affecté)[/size][/i]\n\n[b][u]Informations médicales:[/u][/b]\n\n[b]Port des lunettes de vue[/b]: ' + (v('lunettes') === 'Oui' ? 'OUI' : 'NON') + '\n[b]Œil gauche[/b]: ' + v('oeil_g') + '/10\n[b]Œil droit[/b]: ' + v('oeil_d') + '/10\n\n[b]Traitement(s) particulier(s)[/b]: ' + v('traitement') + '\n\n[b]Taille [/b][size=12](cm)[/size]: ' + v('taille') + '\n[b]Poids [/b][size=12](kg)[/size]: ' + v('poids') + '\n\n[b][u]Automatisme - répondre aux questions suivantes[/u][/b]\n\n[b]Définissez simplement le terme Sp02[/b] : ' + v('q_spo2') + '\n\n[b]Plus simplement, le naloxone est ?[/b] : ' + v('q_naloxone') + '\n\n[b]Que permet de mesurer le Dextro ?[/b] : ' + v('q_dextro') + '\n\n[b]Que permet d\'évaluer le score sur l\'échelle Glasgow ?[/b] : ' + v('q_glasgow') + '\n\n[b][u]Mise en situation [/u][/b]\n\n[b]Que feriez vous lors de votre arrivée sur un accident ?[/b] :\n' + v('q_accident') + '\n[/left]\n\n[right]Fait le ' + v('date_fait') + ' à ' + v('lieu_fait') + '\nSignature du candidat[/right]\n\n[spoiler="OOC"]\n[b]Serveur souhaité (#1 ou #2)[/b]: ' + v('serveur') + '\n[b]Pseudo Discord [/b]: ' + v('discord') + '\n[/spoiler]\n\n[/td]\n[/tr]\n[/table]\n[/hide]';
+        @keyframes bgShift {
+            0% { background-position: 0px 0px, 0% 0%, 0% 0%; }
+            100% { background-position: 16px 16px, 100% 100%, 100% 100%; }
+        }
+
+        /* ========== TOP NAVBAR ========== */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--navbar-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: .5rem 2rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-inner {
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            flex-shrink: 0;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .navbar-brand img {
+            width: 32px;
+            height: 32px;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: .9rem;
+            color: var(--text-primary);
+            letter-spacing: .5px;
+        }
+
+        .navbar-tabs {
+            display: flex;
+            align-items: center;
+            gap: .25rem;
+            flex-wrap: wrap;
+        }
+
+        .navbar-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-tab {
+            background: var(--nav-tab-bg);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-family: 'Inter', sans-serif;
+            font-size: .78rem;
+            font-weight: 600;
+            padding: .5rem 1rem;
+            margin: .15rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all .25s ease;
+            position: relative;
+            border-radius: 8px;
+            animation: navTabSlide .5s ease-out backwards;
+        }
+
+        .nav-tab:nth-child(1) { animation-delay: .1s; }
+        .nav-tab:nth-child(2) { animation-delay: .18s; }
+        .nav-tab:nth-child(3) { animation-delay: .26s; }
+        .nav-tab:nth-child(4) { animation-delay: .34s; }
+        .nav-tab:nth-child(5) { animation-delay: .42s; }
+        .nav-tab:nth-child(6) { animation-delay: .5s; }
+        .nav-tab:nth-child(7) { animation-delay: .58s; }
+
+        @keyframes navTabSlide {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .nav-tab:hover {
+            color: var(--text-primary);
+            background: rgba(6, 182, 212, .12);
+            border-color: rgba(6, 182, 212, .3);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 12px rgba(6, 182, 212, .15);
+        }
+
+        .nav-tab.active {
+            color: #fff;
+            background: linear-gradient(135deg, var(--accent), var(--primary-dark));
+            border-color: var(--accent);
+            box-shadow: 0 2px 16px rgba(6, 182, 212, .35);
+            animation: navTabActive .4s ease;
+        }
+
+        @keyframes navTabActive {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* ========== HERO SECTION ========== */
+        .hero {
+            text-align: center;
+            padding: 3rem 2rem 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-logo {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1.2rem;
+            filter: drop-shadow(0 0 20px rgba(230, 81, 0, .3));
+            animation: heroFloat 4s ease-in-out infinite, heroFadeIn .8s ease-out backwards;
+        }
+
+        @keyframes heroFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        @keyframes heroFadeIn {
+            from { opacity: 0; transform: translateY(20px) scale(.9); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .hero-logo img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .hero-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary-light), #a5f3fc, var(--accent));
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: .4rem;
+            letter-spacing: -0.5px;
+            text-transform: uppercase;
+            animation: heroFadeIn .8s ease-out .15s backwards, titleShimmer 4s ease-in-out infinite;
+        }
+
+        @keyframes titleShimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .hero-subtitle {
+            font-size: .85rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            animation: heroFadeIn .8s ease-out .3s backwards;
+        }
+
+        .hero-desc {
+            margin-top: 1rem;
+            font-size: .9rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.7;
+            animation: heroFadeIn .8s ease-out .45s backwards;
+        }
+
+        .hero-desc .heart {
+            color: #ef4444;
+            font-size: 1rem;
+            display: inline-block;
+            animation: heartbeat 1.5s ease-in-out infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            15% { transform: scale(1.25); }
+            30% { transform: scale(1); }
+            45% { transform: scale(1.15); }
+            60% { transform: scale(1); }
+        }
+
+        /* ========== SCROLL REVEAL ========== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity .7s cubic-bezier(.4, 0, .2, 1), transform .7s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(-30px);
+            transition: opacity .7s cubic-bezier(.4, 0, .2, 1), transform .7s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .reveal-left.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(.85);
+            transition: opacity .6s ease-out, transform .6s ease-out;
+        }
+
+        .reveal-scale.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* ========== WELCOME CARDS ========== */
+        .welcome-section {
+            position: relative;
+            z-index: 1;
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 0 2rem 2rem;
+        }
+
+        .welcome-section.hidden {
+            display: none;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media(max-width: 700px) {
+            .features-grid {
+                grid-template-columns: 1fr;
             }
-        },
+        }
 
-        // -------- 2. CANDIDATURE GENERALE (nouveau branding) --------
-        candidature: {
-            name: 'Candidature Générale', icon: '📝',
-            desc: 'Dossier de candidature standard pour rejoindre l\'HCT. Contient les informations personnelles, le parcours professionnel et une lettre de motivation.',
-            sections: [
-                {
-                    title: 'Informations personnelles', fields: infoPerso.concat([
-                        { id: 'casier', label: 'Casier judiciaire ?', type: 'select', options: ['Non', 'Oui'] },
-                        { id: 'situation', label: 'Situation familiale', type: 'select', options: ['Célibataire', 'Marié(e)', 'Divorcé(e)', 'En concubinage'] }
-                    ])
-                },
-                {
-                    title: 'Parcours professionnel & diplômes', fields: [
-                        { id: 'diplomes', label: 'Diplôme(s) obtenu(s)', ph: 'High School Diploma, etc.', cls: 'fw' },
-                        { id: 'professions', label: 'Profession(s) ou poste antérieure(s)', ph: 'Précisez établissement, année, poste', cls: 'fw', type: 'textarea', rows: 2 },
-                        { id: 'poste', label: 'Intitulé du poste souhaité', ph: 'Se référer aux Conditions des départements', cls: 'fw' }
-                    ]
-                },
-                {
-                    title: 'Lettre de motivation', fields: [
-                        { id: 'motivation', label: 'Pourquoi postuler chez HCT ?', type: 'textarea', ph: 'Expliquez vos motivations...', rows: 5, cls: 'fw' }
-                    ]
-                },
-                { title: 'Signature', fields: sigFields },
-                { title: 'OOC — Informations hors-jeu', fields: oocFull }
-            ],
-            generate: function () {
-                return '[table style="border:1px solid black; background-color:#ffffff; padding:10px; font-family:arial; color:#000000; width:100%;margin:auto;"]\n[tr][td][center][img(701px,251px)]https://zupimages.net/up/25/22/0b9z.png[/img][/center]\n\n[center][b]DOSSIER DE CANDIDATURE[/b][/center]\n\n\n[hr]\n\n[b][u]Informations personnelles:[/u][/b]\n\n[b]Nom[/b]: ' + v('nom') + '\n[b]Prénom[/b]: ' + v('prenom') + '\n[b]Civilité[/b]: ' + v('civilite') + '\n[b]Nationalité[/b]: ' + v('nationalite') + '\n\n[b]Date de naissance[/b]: ' + v('ddn') + '\n[b]Lieu de naissance[/b]: ' + v('ldn') + '\n[b]Adresse[/b]: ' + v('adresse') + '\n\n[b]Permis possédé(s)[/b]: ' + v('permis') + '\n[b]Possédez vous un casier judiciaire[/b]: ' + (v('casier') === 'Oui' ? 'OUI' : 'NON') + '\n[b]Situation familiale[/b] : Marié(e) - Divorcé(e) - Célibataire - En concubinage [size=10](Rayez la mention inutile)[/size]\n\n[b][u]Parcours professionnel(s) et diplôme(s):[/u][/b]\n\n[b]Diplôme(s) obtenu(s)[/b]: ' + v('diplomes') + '\n\n[b]Profession(s) ou poste antérieure(s)[/b]: ' + v('professions') + '\n[i][size=10](Si employé dans un hôpital ou autre du domaine médical, précisez l\'établissement, l\'année et le poste)[/size][/i]\n\n[b]Intitulé du poste :[/b] ' + v('poste') + '\n[i][size=10](Se référer aux "[url=https://hct-intra.forumactif.com/t231-a-lire-conditions-des-departements-accreditations]Conditions des départements & Accréditations[/url]")[/size][/i]\n\n[b][u]Lettre de motivation:[/u][/b]\n[i][size=10](Vous rédigez une lettre de motivation dans laquelle vous expliquerez pourquoi postuler chez nous)[/size][/i]\n' + v('motivation') + '\n\n[right]Fait le ' + v('date_fait') + ' à ' + v('lieu_fait') + '\nSignature[/right]\n\n[spoiler="OOC"]\n[b]Serveur souhaité (#1 ou #2)[/b]: ' + v('serveur') + '\n[b]Avez-vous Discord (indiquez votre pseudo) ?[/b] [i](obligaroire)[/i] : ' + v('discord') + '\n[b]Anciens noms IG[/b]: ' + v('anciens_noms') + '\n[b]Lien de votre compte forum (GTACity RP)[/b]: ' + v('lien_forum') + '\n[b]Courte histoire du personnage[/b] [size=10](trois lignes)[/size]:\n[size=10](Histoire cohérente, impossibilité d\'avoir fait de l\'illégal)[/size]\n' + v('histoire') + '\n[/spoiler]\n\n[/td]\n[/tr]\n[/table]';
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            text-align: center;
+            transition: all .3s ease;
+            opacity: 0;
+            transform: translateY(25px);
+        }
+
+        .feature-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .feature-card:nth-child(1) { transition-delay: 0s; }
+        .feature-card:nth-child(2) { transition-delay: .15s; }
+        .feature-card:nth-child(3) { transition-delay: .3s; }
+
+        .feature-card:hover {
+            border-color: rgba(6, 182, 212, .3);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(6, 182, 212, .15);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: .75rem;
+            display: inline-block;
+            animation: iconBounce 2s ease-in-out infinite;
+            animation-play-state: paused;
+        }
+
+        .feature-card.visible .feature-icon {
+            animation-play-state: running;
+        }
+
+        @keyframes iconBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+
+        .feature-card h3 {
+            font-size: .85rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: .4rem;
+        }
+
+        .feature-card p {
+            font-size: .75rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            padding: 1.2rem 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+
+        @media(max-width: 500px) {
+            .stats-bar {
+                gap: 1.5rem;
             }
-        },
+        }
 
-        // -------- 3. SURETE HOSPITALIERE --------
-        surete: {
-            name: 'Candidature Sûreté', icon: '🛡️',
-            desc: 'Candidature spécifique pour le département de sûreté hospitalière. Inclut les informations médicales et une lettre de motivation détaillée.',
-            sections: [
-                {
-                    title: 'Informations personnelles', fields: infoPerso.concat([
-                        { id: 'casier', label: 'Casier judiciaire ?', type: 'select', options: ['Non', 'Oui'] },
-                        { id: 'situation', label: 'Situation familiale', type: 'select', options: ['Célibataire', 'Marié(e)', 'Divorcé(e)', 'En concubinage'] }
-                    ])
-                },
-                {
-                    title: 'Parcours professionnel & diplômes', fields: [
-                        { id: 'diplomes', label: 'Diplôme(s) obtenu(s)', ph: 'High School Diploma, etc.', cls: 'fw' },
-                        { id: 'professions', label: 'Profession(s) antérieure(s)', ph: 'Ex: Agent de sécurité', cls: 'fw' },
-                        { id: 'affectation', label: 'Affectation souhaitée', type: 'select', options: ['TMC Townsend', 'NMH Nashville'], cls: 'fw' }
-                    ]
-                },
-                { title: 'Informations médicales', fields: infoMedicale },
-                {
-                    title: 'Lettre de motivation', fields: [
-                        { id: 'motivation', label: 'Lettre de motivation (6 lignes min.)', type: 'textarea', ph: 'Rédigez votre lettre de motivation...', rows: 6, cls: 'fw' }
-                    ]
-                },
-                { title: 'Signature', fields: sigFields },
-                {
-                    title: 'OOC — Informations hors-jeu', fields: [
-                        { id: 'serveur', label: 'Serveur souhaité', type: 'select', options: ['#1', '#2'] },
-                        { id: 'discord', label: 'Avez-vous Discord ? (pseudo)', ph: 'MonPseudo' },
-                        { id: 'lien_forum', label: 'Lien compte forum GTACity', ph: 'https://gtacityrp.fr/...' },
-                        { id: 'histoire', label: 'Histoire du personnage (3 lignes)', type: 'textarea', ph: 'Racontez...', rows: 3, cls: 'fw' }
-                    ]
+        .stat-item {
+            text-align: center;
+            opacity: 0;
+            transform: scale(.8);
+            transition: opacity .5s ease, transform .5s ease;
+        }
+
+        .stat-item.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .stat-item:nth-child(1) { transition-delay: .1s; }
+        .stat-item:nth-child(2) { transition-delay: .25s; }
+        .stat-item:nth-child(3) { transition-delay: .4s; }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, var(--primary-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: .7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            font-weight: 600;
+        }
+
+        .cta-hint {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: .8rem;
+            padding: 1rem 0;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity .6s ease .5s, transform .6s ease .5s;
+        }
+
+        .cta-hint.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .cta-hint span {
+            color: var(--primary-light);
+            font-weight: 600;
+        }
+
+        /* ========== HOW IT WORKS ========== */
+        .how-section {
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .how-title {
+            text-align: center;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .how-steps {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        @media(max-width: 700px) {
+            .how-steps {
+                flex-direction: column;
+            }
+        }
+
+        .how-step {
+            flex: 1;
+            text-align: center;
+            padding: 1.2rem;
+            position: relative;
+        }
+
+        .how-step-number {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--primary-dark));
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: .75rem;
+            box-shadow: 0 2px 12px rgba(6, 182, 212, .3);
+        }
+
+        .how-step h4 {
+            font-size: .85rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: .35rem;
+        }
+
+        .how-step p {
+            font-size: .75rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .how-connector {
+            display: flex;
+            align-items: center;
+            color: var(--accent);
+            font-size: 1.2rem;
+            padding-top: 1.2rem;
+            opacity: .4;
+        }
+
+        @media(max-width: 700px) {
+            .how-connector {
+                justify-content: center;
+                padding-top: 0;
+                transform: rotate(90deg);
+            }
+        }
+
+        /* ========== TEMPLATE LIST ========== */
+        .template-list-section {
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .template-list-title {
+            text-align: center;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .template-list-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: .75rem;
+        }
+
+        .template-list-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+
+        .template-list-card:hover {
+            border-color: rgba(6, 182, 212, .4);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(6, 182, 212, .15);
+        }
+
+        .template-list-card:active {
+            transform: scale(.97);
+        }
+
+        .template-list-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .template-list-name {
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .template-list-desc {
+            font-size: .68rem;
+            color: var(--text-muted);
+            margin-top: .15rem;
+        }
+
+        /* ========== TEMPLATE INFO BANNER ========== */
+        .template-info-banner {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1.2rem;
+            align-items: flex-start;
+            animation: fiu .5s ease-out;
+        }
+
+        .template-info-icon {
+            font-size: 2.5rem;
+            flex-shrink: 0;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(6, 182, 212, .08);
+            border-radius: 14px;
+            border: 1px solid rgba(6, 182, 212, .15);
+        }
+
+        .template-info-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .template-info-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: .3rem;
+        }
+
+        .template-info-desc {
+            font-size: .82rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: .6rem;
+        }
+
+        .template-info-meta {
+            display: flex;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+        }
+
+        .template-info-meta span {
+            font-size: .72rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            background: rgba(6, 182, 212, .06);
+            padding: .25rem .6rem;
+            border-radius: 6px;
+            border: 1px solid rgba(6, 182, 212, .1);
+        }
+
+        @media(max-width: 500px) {
+            .template-info-banner {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .template-info-meta {
+                justify-content: center;
+            }
+        }
+
+        /* ========== MAIN CONTAINER ========== */
+        main {
+            position: relative;
+            z-index: 1;
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 0 2rem 3rem;
+        }
+
+        @media(max-width:768px) {
+            main {
+                padding: 0 1rem 2rem;
+            }
+
+            .hero {
+                padding: 2rem 1rem 1.5rem;
+            }
+
+            .hero-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* ========== FORM CARD ========== */
+        .form-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: 2rem 2rem 1.5rem;
+            animation: fiu .5s ease-out backwards;
+        }
+
+        @keyframes fiu {
+            from {
+                opacity: 0;
+                transform: translateY(20px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        @media(max-width:600px) {
+            .form-card {
+                padding: 1.2rem 1rem 1rem;
+            }
+        }
+
+        /* ========== FORM SECTIONS ========== */
+        .fs {
+            margin-bottom: 2rem;
+        }
+
+        .fst {
+            font-size: .95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            padding-left: .75rem;
+            border-left: 3px solid var(--accent);
+        }
+
+        .fg {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: .75rem 1.2rem;
+        }
+
+        @media(max-width:600px) {
+            .fg {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .fg .fw {
+            grid-column: 1/-1;
+        }
+
+        .fi {
+            display: flex;
+            flex-direction: column;
+            gap: .35rem;
+        }
+
+        .fi label {
+            font-size: .78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .fi input,
+        .fi select,
+        .fi textarea {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: .85rem;
+            padding: .6rem .85rem;
+            transition: var(--tr);
+        }
+
+        .fi input:focus,
+        .fi select:focus,
+        .fi textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, .12);
+        }
+
+        .fi textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .fi select {
+            cursor: pointer;
+        }
+
+        .fi select option {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        /* ========== GENERATE BUTTON ========== */
+        .gb {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            width: auto;
+            min-width: 280px;
+            margin: 2rem auto 0;
+            padding: .85rem 2.5rem;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(135deg, var(--accent), var(--primary-dark));
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: .95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--tr);
+            box-shadow: 0 4px 20px rgba(6, 182, 212, .3);
+        }
+
+        .gb:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 28px rgba(6, 182, 212, .45);
+        }
+
+        /* ========== OUTPUT AREA ========== */
+        #output-area {
+            display: none;
+            margin-top: 1.5rem;
+        }
+
+        .output-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: 1.5rem 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .output-card-title {
+            font-size: .9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+
+        #bbcode-output {
+            width: 100%;
+            min-height: 200px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: Consolas, Monaco, monospace;
+            font-size: .82rem;
+            padding: 1rem;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        #bbcode-output:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, .12);
+        }
+
+        .oa {
+            display: flex;
+            gap: .75rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .bc {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .6rem 1.2rem;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent), var(--primary-dark));
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: .85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--tr);
+            box-shadow: 0 4px 16px rgba(6, 182, 212, .3);
+        }
+
+        .bc:hover {
+            transform: translateY(-2px);
+        }
+
+        .bcl {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .6rem 1.2rem;
+            border: 1px solid rgba(239, 68, 68, .3);
+            border-radius: 8px;
+            background: rgba(239, 68, 68, .1);
+            color: var(--danger);
+            font-family: 'Inter', sans-serif;
+            font-size: .85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--tr);
+        }
+
+        .bcl:hover {
+            background: rgba(239, 68, 68, .2);
+        }
+
+        /* ========== PREVIEW ========== */
+        .pv {
+            background: #fff;
+            border-radius: 8px;
+            padding: 1.5rem;
+            min-height: 200px;
+            color: #000;
+            font-family: Arial, sans-serif;
+            font-size: .9rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .pv img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .pv table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .pv hr {
+            border: none;
+            border-top: 1px solid #ccc;
+            margin: 1rem 0;
+        }
+
+        .pv .sb {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin: .5rem 0;
+            overflow: hidden;
+        }
+
+        .pv .sh {
+            background: #ddd;
+            padding: .4rem .8rem;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: .85rem;
+        }
+
+        .pv .sc {
+            padding: .8rem;
+            display: none;
+        }
+
+        .pv .sc.open {
+            display: block;
+        }
+
+        /* ========== TOAST ========== */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--success);
+            color: var(--success);
+            padding: .8rem 1.5rem;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: .85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .4);
+            z-index: 1000;
+            transform: translateY(120%);
+            opacity: 0;
+            transition: all .4s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* ========== FOOTER ========== */
+        footer {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: .75rem;
+            border-top: 1px solid var(--border);
+            margin-top: 2rem;
+        }
+
+        /* ========== SCROLLBAR ========== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        /* ========== THEME TOGGLE ========== */
+        .theme-toggle {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all .3s ease;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--accent);
+            transform: rotate(20deg) scale(1.1);
+            box-shadow: 0 2px 12px rgba(6, 182, 212, .2);
+        }
+
+        /* ========== HAMBURGER MENU ========== */
+        .hamburger {
+            display: none;
+            background: linear-gradient(135deg, var(--accent), var(--primary-dark));
+            border: 1px solid var(--accent);
+            height: 40px;
+            border-radius: 50px;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            cursor: pointer;
+            font-size: 1.3rem;
+            transition: all .3s ease;
+            flex-shrink: 0;
+            color: #fff;
+            line-height: 1;
+            padding: 0 1rem 0 .75rem;
+            box-shadow: 0 2px 12px rgba(6, 182, 212, .3);
+            animation: hamburgerPulse 2.5s ease-in-out infinite;
+        }
+
+        .hamburger.open {
+            animation: none;
+        }
+
+        @keyframes hamburgerPulse {
+            0%, 100% { box-shadow: 0 2px 12px rgba(6, 182, 212, .3); }
+            50% { box-shadow: 0 2px 20px rgba(6, 182, 212, .55); }
+        }
+
+        .hamburger-label {
+            font-family: 'Inter', sans-serif;
+            font-size: .78rem;
+            font-weight: 700;
+            letter-spacing: .3px;
+            display: none;
+        }
+
+        .hamburger:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(6, 182, 212, .45);
+        }
+
+        .hamburger .bar {
+            display: block;
+            width: 18px;
+            height: 2px;
+            background: #fff;
+            margin: 3px 0;
+            border-radius: 2px;
+            transition: all .3s ease;
+        }
+
+        .hamburger-bars {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hamburger.open .bar:nth-child(1) {
+            transform: rotate(45deg) translate(3.5px, 3.5px);
+        }
+
+        .hamburger.open .bar:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.open .bar:nth-child(3) {
+            transform: rotate(-45deg) translate(3.5px, -3.5px);
+        }
+
+        /* Mobile menu overlay */
+        .mobile-menu-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .5);
+            z-index: 98;
+            opacity: 0;
+            transition: opacity .3s ease;
+        }
+
+        .mobile-menu-overlay.show {
+            opacity: 1;
+        }
+
+        /* CTA hint responsive */
+        .cta-hint .cta-desktop { display: inline; }
+        .cta-hint .cta-mobile { display: none; }
+
+        [data-theme="light"] .hero-title {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        [data-theme="light"] .stat-value {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        [data-theme="light"] .feature-card {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+        }
+
+        [data-theme="light"] .feature-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .1);
+        }
+
+        [data-theme="light"] .nav-tab.active {
+            color: #fff;
+        }
+
+        [data-theme="light"] .fi select option {
+            background: #fff;
+            color: #1e293b;
+        }
+
+        /* ========== RESPONSIVE — LARGE TABLET / IPAD LANDSCAPE (≤1024px) ========== */
+        @media (max-width: 1024px) {
+            .navbar-inner {
+                gap: 1rem;
+            }
+
+            .nav-tab {
+                font-size: .75rem;
+                padding: .45rem .8rem;
+            }
+        }
+
+        /* ========== RESPONSIVE — TABLET (≤768px) ========== */
+        @media (max-width: 768px) {
+            .hamburger {
+                display: flex;
+            }
+
+            .hamburger-label {
+                display: inline;
+            }
+
+            .cta-hint .cta-desktop { display: none; }
+            .cta-hint .cta-mobile { display: inline; }
+
+            .navbar {
+                padding: .5rem 1rem;
+            }
+
+            .navbar-inner {
+                flex-direction: row;
+                flex-wrap: nowrap;
+                justify-content: space-between;
+                gap: .5rem;
+            }
+
+            .navbar-brand {
+                width: auto;
+                justify-content: flex-start;
+            }
+
+            .navbar-tabs {
+                position: fixed;
+                top: 0;
+                right: -280px;
+                width: 280px;
+                height: 100vh;
+                height: 100dvh;
+                background: var(--bg-card);
+                border-left: 1px solid var(--border);
+                flex-direction: column;
+                align-items: stretch;
+                padding: 4.5rem 1rem 1.5rem;
+                gap: .4rem;
+                z-index: 99;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                transition: right .35s cubic-bezier(.4, 0, .2, 1);
+                box-shadow: -4px 0 24px rgba(0, 0, 0, .3);
+            }
+
+            .navbar-tabs.open {
+                right: 0;
+            }
+
+            .nav-tab {
+                width: 100%;
+                text-align: left;
+                font-size: .85rem;
+                padding: .65rem 1rem;
+                border-radius: 10px;
+            }
+
+            .mobile-menu-overlay.show {
+                display: block;
+                opacity: 1;
+            }
+
+            .theme-toggle {
+                margin-left: 0;
+                margin-right: .25rem;
+            }
+
+            .hero {
+                padding: 2rem 1rem 1.5rem;
+            }
+
+            .hero-title {
+                font-size: 1.6rem;
+            }
+
+            .hero-desc {
+                font-size: .85rem;
+                padding: 0 .5rem;
+            }
+
+            main {
+                padding: 0 1rem 2rem;
+            }
+
+            .welcome-section {
+                padding: 0 1rem 2rem;
+            }
+
+            .output-card {
+                padding: 1.2rem 1rem;
+            }
+
+            .stats-bar {
+                gap: 2rem;
+            }
+
+            .pv {
+                padding: 1rem;
+            }
+
+            .pv img {
+                max-width: 100% !important;
+                height: auto !important;
+                width: auto !important;
+            }
+
+            .pv table {
+                max-width: 100%;
+                table-layout: fixed;
+                word-wrap: break-word;
+            }
+
+            .pv td {
+                word-break: break-word;
+            }
+        }
+
+        /* ========== RESPONSIVE — MOBILE (≤600px) ========== */
+        @media (max-width: 600px) {
+            .hero-title {
+                font-size: 1.4rem;
+            }
+
+            .hero-subtitle {
+                font-size: .78rem;
+            }
+
+            .hero-logo {
+                width: 50px;
+                height: 50px;
+            }
+
+            .form-card {
+                padding: 1.2rem 1rem 1rem;
+            }
+
+            .fg {
+                grid-template-columns: 1fr;
+            }
+
+            .gb {
+                width: 100%;
+                min-width: unset;
+                padding: .85rem 1.5rem;
+                font-size: .9rem;
+            }
+
+            .oa {
+                flex-direction: column;
+            }
+
+            .bc,
+            .bcl {
+                width: 100%;
+                justify-content: center;
+                padding: .75rem 1rem;
+                font-size: .85rem !important;
+            }
+
+            .stat-value {
+                font-size: 1.3rem;
+            }
+
+            .stat-label {
+                font-size: .65rem;
+            }
+
+            footer {
+                padding: 1.5rem 1rem;
+                font-size: .7rem;
+            }
+
+            footer > div {
+                gap: 1rem !important;
+            }
+
+            footer a {
+                font-size: .75rem !important;
+            }
+
+            .pv {
+                padding: .75rem;
+                font-size: .82rem;
+            }
+        }
+
+        /* ========== RESPONSIVE — SMALL PHONES (≤480px) ========== */
+        @media (max-width: 480px) {
+            .navbar {
+                padding: .4rem .75rem;
+            }
+
+            .navbar-brand span {
+                font-size: .8rem;
+            }
+
+            .navbar-brand img {
+                width: 26px;
+                height: 26px;
+            }
+
+            .hamburger {
+                height: 36px;
+                padding: 0 .85rem 0 .6rem;
+                font-size: 1.2rem;
+            }
+
+            .hamburger-label {
+                font-size: .72rem;
+            }
+
+            .theme-toggle {
+                width: 34px;
+                height: 34px;
+                font-size: .95rem;
+            }
+
+            .hero {
+                padding: 1.5rem .75rem 1rem;
+            }
+
+            .hero-title {
+                font-size: 1.2rem;
+            }
+
+            .hero-desc {
+                font-size: .8rem;
+            }
+
+            .welcome-section {
+                padding: 0 .75rem 1.5rem;
+            }
+
+            main {
+                padding: 0 .75rem 2rem;
+            }
+
+            .form-card {
+                padding: 1rem .75rem .75rem;
+            }
+
+            .fst {
+                font-size: .85rem;
+            }
+
+            .fi label {
+                font-size: .72rem;
+            }
+
+            .fi input,
+            .fi select,
+            .fi textarea {
+                font-size: 16px;
+                padding: .6rem .7rem;
+            }
+
+            .output-card {
+                padding: 1rem .75rem;
+            }
+
+            #bbcode-output {
+                font-size: .75rem;
+                padding: .75rem;
+                min-height: 150px;
+            }
+
+            .toast {
+                left: 1rem;
+                right: 1rem;
+                bottom: 1rem;
+                text-align: center;
+                justify-content: center;
+            }
+
+            .cta-hint {
+                font-size: .72rem;
+            }
+
+            .navbar-tabs {
+                width: 260px;
+                right: -260px;
+            }
+        }
+
+        /* ========== RESPONSIVE — STATS BAR VERY SMALL (≤400px) ========== */
+        @media (max-width: 400px) {
+            .stats-bar {
+                flex-direction: column;
+                gap: .75rem;
+                align-items: center;
+            }
+
+            .stat-value {
+                font-size: 1.1rem;
+            }
+
+            .hero-title {
+                font-size: 1.05rem;
+            }
+
+            .features-grid {
+                gap: .75rem;
+            }
+
+            .feature-card {
+                padding: 1rem;
+            }
+
+            .feature-icon {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* ========== PREVENT HORIZONTAL SCROLL ========== */
+        html,
+        body {
+            overflow-x: hidden;
+        }
+
+        /* ========== TOUCH IMPROVEMENTS ========== */
+        @media (hover: none) and (pointer: coarse) {
+            .nav-tab:hover {
+                transform: none;
+                box-shadow: none;
+            }
+
+            .feature-card:hover {
+                transform: none;
+            }
+
+            .gb:hover {
+                transform: none;
+            }
+
+            .bc:hover,
+            .bcl:hover {
+                transform: none;
+            }
+
+            .nav-tab,
+            .gb,
+            .bc,
+            .bcl {
+                -webkit-tap-highlight-color: rgba(6, 182, 212, .15);
+            }
+        }
+
+        /* ========== LANDSCAPE PHONE ========== */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .hero {
+                padding: 1rem 1rem .75rem;
+            }
+
+            .hero-logo {
+                width: 40px;
+                height: 40px;
+                margin-bottom: .5rem;
+            }
+
+            .hero-title {
+                font-size: 1.3rem;
+            }
+
+            .hero-desc {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ========== NAVBAR ========== -->
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <div class="navbar-brand" id="navbar-home" onclick="goHome()">
+                <img src="monlogo.png" alt="HCT Logo">
+                <span>HCT BBCode</span>
+            </div>
+            <div class="navbar-tabs" id="tg-container">
+                <!-- Template tabs are injected here by app.js -->
+            </div>
+            <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Changer le thème">
+                🌙
+            </button>
+            <button class="hamburger" id="hamburger-btn" onclick="toggleMobileMenu()" title="Ouvrir les templates">
+                <span class="hamburger-bars">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </span>
+                <span class="hamburger-label">Templates</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile menu overlay -->
+    <div class="mobile-menu-overlay" id="mobile-overlay" onclick="toggleMobileMenu()"></div>
+
+    <!-- ========== HERO ========== -->
+    <div class="hero" id="hero-section">
+        <div class="hero-logo">
+            <img src="monlogo.png" alt="HCT Logo">
+        </div>
+        <h1 class="hero-title" id="hero-title">Générateur BBCode</h1>
+        <p class="hero-subtitle" id="hero-subtitle">Hospital Corporation of Tennessee</p>
+        <p class="hero-desc" id="hero-desc">Fait pour vous aider à remplir vos dossiers, fait avec le <span
+                class="heart">❤️</span></p>
+    </div>
+
+    <!-- ========== WELCOME SECTION (visible on landing) ========== -->
+    <div class="welcome-section" id="welcome-section">
+        <div class="features-grid">
+            <div class="feature-card">
+                <span class="feature-icon">📝</span>
+                <h3>Formulaires prêts</h3>
+                <p>Tous les modèles de dossiers HCT prêts à remplir en quelques clics.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">⚡</span>
+                <h3>Génération instantanée</h3>
+                <p>Votre BBCode est généré automatiquement, prêt à être copié-collé sur le forum.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">👁️</span>
+                <h3>Prévisualisation</h3>
+                <p>Visualisez le rendu final de votre dossier avant de le poster.</p>
+            </div>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value">7</div>
+                <div class="stat-label">Templates</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">∞</div>
+                <div class="stat-label">Utilisations</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">0€</div>
+                <div class="stat-label">Toujours gratuit</div>
+            </div>
+        </div>
+
+        <!-- How it works -->
+        <div class="how-section reveal">
+            <div class="how-title">💡 Comment ça marche ?</div>
+            <div class="how-steps">
+                <div class="how-step">
+                    <div class="how-step-number">1</div>
+                    <h4>Choisissez un template</h4>
+                    <p>Sélectionnez le type de dossier que vous souhaitez remplir parmi les 7 modèles disponibles.</p>
+                </div>
+                <div class="how-connector">→</div>
+                <div class="how-step">
+                    <div class="how-step-number">2</div>
+                    <h4>Remplissez le formulaire</h4>
+                    <p>Complétez les champs avec vos informations. Tout est guidé, rien de compliqué !</p>
+                </div>
+                <div class="how-connector">→</div>
+                <div class="how-step">
+                    <div class="how-step-number">3</div>
+                    <h4>Copiez le BBCode</h4>
+                    <p>Cliquez sur "Générer", puis copiez le code et collez-le directement sur le forum.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Template list -->
+        <div class="template-list-section reveal">
+            <div class="template-list-title">📂 Templates disponibles</div>
+            <div class="template-list-grid" id="template-list-grid">
+                <div class="template-list-card" onclick="document.getElementById('btn-internat').click()">
+                    <span class="template-list-icon">🎓</span>
+                    <div>
+                        <div class="template-list-name">Candidature Internat</div>
+                        <div class="template-list-desc">Dossier pour les candidatures d'internat médical</div>
+                    </div>
+                </div>
+                <div class="template-list-card" onclick="document.getElementById('btn-candidature').click()">
+                    <span class="template-list-icon">📝</span>
+                    <div>
+                        <div class="template-list-name">Candidature Générale</div>
+                        <div class="template-list-desc">Dossier de candidature standard HCT</div>
+                    </div>
+                </div>
+                <div class="template-list-card" onclick="document.getElementById('btn-surete').click()">
+                    <span class="template-list-icon">🛡️</span>
+                    <div>
+                        <div class="template-list-name">Candidature Sûreté</div>
+                        <div class="template-list-desc">Candidature pour la sûreté hospitalière</div>
+                    </div>
+                </div>
+                <div class="template-list-card" onclick="document.getElementById('btn-medecin').click()">
+                    <span class="template-list-icon">🩺</span>
+                    <div>
+                        <div class="template-list-name">Candidature Médecin</div>
+                        <div class="template-list-desc">Candidature avec spécialité médicale</div>
+                    </div>
+                </div>
+                <div class="template-list-card" onclick="document.getElementById('btn-candidature_classique').click()">
+                    <span class="template-list-icon">📋</span>
+                    <div>
+                        <div class="template-list-name">Candidature Classique</div>
+                        <div class="template-list-desc">Format classique de candidature</div>
+                    </div>
+                </div>
+                <div class="template-list-card" onclick="document.getElementById('btn-reintegration').click()">
+                    <span class="template-list-icon">🔄</span>
+                    <div>
+                        <div class="template-list-name">Réintégration</div>
+                        <div class="template-list-desc">Dossier de réintégration au sein de l'HCT</div>
+                    </div>
+                </div>
+                <div class="template-list-card" onclick="document.getElementById('btn-formation').click()">
+                    <span class="template-list-icon">🏫</span>
+                    <div>
+                        <div class="template-list-name">Demande Formation</div>
+                        <div class="template-list-desc">Demande à l'organisme de formation</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-hint">
+            <span class="cta-desktop">👆 Sélectionnez un <span>template</span> dans la barre ci-dessus ou cliquez sur une carte pour commencer</span>
+            <span class="cta-mobile">👆 Appuyez sur le bouton <span>Templates</span> en haut à droite ou sur une carte ci-dessus</span>
+        </div>
+    </div>
+
+    <!-- ========== MAIN ========== -->
+    <main>
+        <!-- Form card (hidden until template selected) -->
+        <div class="form-card" id="form-card" style="display:none">
+            <div id="fc"></div>
+            <button class="gb" onclick="generateBBCode()">⟨/⟩ Générer le BBCode</button>
+        </div>
+
+        <!-- Output area -->
+        <div id="output-area">
+            <div class="output-card">
+                <div class="output-card-title">📄 BBCode généré</div>
+                <div class="oa">
+                    <button class="bc" onclick="copyBBCode()">📋 Copier le BBCode</button>
+                    <button class="bcl" onclick="clearAll()">🗑️ Effacer tout</button>
+                </div>
+                <textarea id="bbcode-output" readonly></textarea>
+            </div>
+        </div>
+
+        <!-- Preview card -->
+        <div class="output-card" id="preview-card" style="display:none">
+            <div class="output-card-title">👁️ Prévisualisation</div>
+            <div class="pv" id="preview">
+                <div
+                    style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;color:#aaa;text-align:center;gap:1rem">
+                    <div style="font-size:3rem;opacity:.4">🔍</div>
+                    <p>La prévisualisation apparaîtra ici après génération.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div style="display:flex;justify-content:center;gap:2rem;flex-wrap:wrap;margin-bottom:1rem">
+            <a href="https://hct-intra.forumactif.com" target="_blank"
+                style="color:var(--primary-light);text-decoration:none;font-weight:500">🌐 Intranet HCT</a>
+            <a href="https://discord.gg/uxfcjrUKWc" target="_blank"
+                style="color:var(--primary-light);text-decoration:none;font-weight:500">💬 Discord</a>
+            <a href="https://gtacityrp.fr/index.php" target="_blank"
+                style="color:var(--primary-light);text-decoration:none;font-weight:500">🎮 GTACity RP</a>
+        </div>
+        &copy; 2026 HCT Healthcare — Générateur BBCode interne. Tous droits réservés.
+    </footer>
+    <div class="toast" id="toast"><span>✓</span><span id="toast-msg"></span></div>
+    <script src="app.js"></script>
+    <script>
+        // ========== MOBILE MENU TOGGLE ==========
+        function toggleMobileMenu() {
+            var tabs = document.getElementById('tg-container');
+            var hamburger = document.getElementById('hamburger-btn');
+            var overlay = document.getElementById('mobile-overlay');
+            var isOpen = tabs.classList.contains('open');
+
+            if (isOpen) {
+                tabs.classList.remove('open');
+                hamburger.classList.remove('open');
+                overlay.classList.remove('show');
+                document.body.style.overflow = '';
+            } else {
+                tabs.classList.add('open');
+                hamburger.classList.add('open');
+                overlay.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        // Close mobile menu when a nav tab is clicked
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('nav-tab') || e.target.closest('.nav-tab')) {
+                var tabs = document.getElementById('tg-container');
+                if (tabs.classList.contains('open')) {
+                    toggleMobileMenu();
                 }
-            ],
-            generate: function () {
-                return '[table style="border:1px solid black; background-color:#ffffff; padding:10px; font-family:arial; color:#000000; width:100%;margin:auto;"]\n[tr][td]\n[center][img(500px,250px)]https://zupimages.net/up/23/09/2rts.png[/img][/center]\n\n[center][b][size=18]DOSSIER DE CANDIDATURE - SURETÉ HOSPITALIÈRE[/size][/b][/center]\n\n[hr]\n\n[left][b][u]Informations personnelles:[/u][/b]\n\n[b]Nom[/b]: ' + v('nom') + '\n[b]Prénom[/b]: ' + v('prenom') + '\n[b]Civilité[/b]: ' + v('civilite') + '\n[b]Nationalité[/b]: ' + v('nationalite') + '\n\n[b]Date de naissance[/b]: ' + v('ddn') + '\n[b]Lieu de naissance[/b]: ' + v('ldn') + '\n[b]Adresse[/b]: ' + v('adresse') + '\n\n[b]Permis possédé(s)[/b]: ' + v('permis') + '\n[b]Possédez vous un casier judiciaire[/b]: ' + (v('casier') === 'Oui' ? 'OUI' : 'NON') + '\n[b]Situation familiale[/b] : Marié(e) - Divorcé(e) - Célibataire - En concubinage [size=12](Rayer les mentions inutiles)[/size]\n\n[b][u]Parcours professionnel(s) et diplôme(s):[/u][/b]\n\n[b]Diplôme(s) obtenu(s)[/b]: ' + v('diplomes') + '\n\n[b]Profession(s) antérieure(s)[/b]: ' + v('professions') + '\n\n[b]Affectation souhaité :[/b] TMC Townsend - NMH Nashville [size=12](Rayer les mentions inutiles)[/size]\n[i][size=10](Il s\'agit de l\'établissement hospitalier où vous souhaitez être affecté)[/size][/i]\n\n[b][u]Informations médicales:[/u][/b]\n\n[b]Port des lunettes de vue[/b]: ' + (v('lunettes') === 'Oui' ? 'OUI' : 'NON') + '\n[b]Œil gauche[/b]: ' + v('oeil_g') + '/10\n[b]Œil droit[/b]:  ' + v('oeil_d') + '/10\n\n[b]Traitement(s) particulier(s)[/b]: ' + v('traitement') + '\n\n[b]Taille [/b][size=12](cm)[/size]: ' + v('taille') + '\n[b]Poids [/b][size=12](kg)[/size]: ' + v('poids') + '\n\n[b][u]Lettre de motivation[/u][/b]\n[i][size=12](Rédiger une lettre de motivation d\'environ 6 lignes minimum)[/size][/i]\n' + v('motivation') + '\n[/left]\n\n\n\n[right]Fait le ' + v('date_fait') + ' à ' + v('lieu_fait') + '\nSignature du candidat[/right]\n\n[spoiler="OOC"]\n[b]Serveur souhaité (#1 ou #2)[/b]: ' + v('serveur') + '\n[b]Avez-vous Discord (indiquez votre pseudo) ?[/b] [i](obligaroire)[/i] : ' + v('discord') + '\n[b]Lien de votre compte forum (GTACity RP)[/b]: ' + v('lien_forum') + '\n[b]Courte histoire du personnage[/b] [size=12](trois lignes)[/size]:\n' + v('histoire') + '\n[/spoiler]\n\n[/td]\n[/tr]\n[/table]';
             }
-        },
-
-        // -------- 4. CANDIDATURE MEDECIN (avec spécialité) --------
-        medecin: {
-            name: 'Candidature Médecin', icon: '🩺',
-            desc: 'Candidature médicale avec choix de spécialité et d\'affectation. Référez-vous aux conditions des départements pour les spécialités disponibles.',
-            sections: [
-                {
-                    title: 'Informations personnelles', fields: infoPerso.concat([
-                        { id: 'casier', label: 'Casier judiciaire ?', type: 'select', options: ['Non', 'Oui'] },
-                        { id: 'situation', label: 'Situation familiale', type: 'select', options: ['Célibataire', 'Marié(e)', 'Divorcé(e)', 'En concubinage'] }
-                    ])
-                },
-                {
-                    title: 'Parcours professionnel & diplômes', fields: [
-                        { id: 'diplomes', label: 'Diplôme(s) obtenu(s)', cls: 'fw', ph: 'High School Diploma...' },
-                        { id: 'professions', label: 'Profession(s) ou poste antérieure(s)', type: 'textarea', rows: 2, cls: 'fw', ph: 'Si hôpital: établissement, année, poste' },
-                        { id: 'affectation', label: 'Affectation souhaitée', ph: 'Établissement hospitalier', cls: 'fw' },
-                        { id: 'specialite', label: 'Spécialité souhaitée', ph: 'Se référer aux Conditions des départements', cls: 'fw' }
-                    ]
-                },
-                { title: 'Informations médicales', fields: infoMedicale },
-                {
-                    title: 'Lettre de motivation', fields: [
-                        { id: 'motivation', label: 'Lettre de motivation', type: 'textarea', ph: 'Expliquez pourquoi postuler chez nous...', rows: 5, cls: 'fw' }
-                    ]
-                },
-                { title: 'Signature', fields: sigFields },
-                { title: 'OOC — Informations hors-jeu', fields: oocTS }
-            ],
-            generate: function () {
-                return '[table style="border:1px solid black; background-color:#ffffff; padding:10px; font-family:arial; color:#000000; width:100%;margin:auto;"]\n[tr][td][center][img(500px,250px)]https://zupimages.net/up/23/09/2rts.png[/img][/center]\n\n[center][b]DOSSIER DE CANDIDATURE[/b][/center]\n\n\n[hr]\n\n[b][u]Informations personnelles:[/u][/b]\n\n[b]Nom[/b]: ' + v('nom') + '\n[b]Prénom[/b]: ' + v('prenom') + '\n[b]Civilité[/b]: ' + v('civilite') + '\n[b]Nationalité[/b]: ' + v('nationalite') + '\n\n[b]Date de naissance[/b]: ' + v('ddn') + '\n[b]Lieu de naissance[/b]: ' + v('ldn') + '\n[b]Adresse[/b]: ' + v('adresse') + '\n\n[b]Permis possédé(s)[/b]: ' + v('permis') + '\n[b]Possédez vous un casier judiciaire[/b]: ' + (v('casier') === 'Oui' ? 'OUI' : 'NON') + '\n[b]Situation familiale[/b] : Marié(e) - Divorcé(e) - Célibataire - En concubinage [size=10](Rayez la mention inutile)[/size]\n\n[b][u]Parcours professionnel(s) et diplôme(s):[/u][/b]\n\n[b]Diplôme(s) obtenu(s)[/b]: ' + v('diplomes') + '\n\n[b]Profession(s) ou poste antérieure(s)[/b]: ' + v('professions') + '\n[i][size=10](Si employé dans un hôpital ou autre du domaine médical, précisez l\'établissement, l\'année et le poste)[/size][/i]\n\n[b]Affectation souhaité :[/b] ' + v('affectation') + '\n[i][size=10](Il s\'agit de l\'établissement hospitalier ou vous souhaitez être affecté)[/size][/i]\n\n[b]Spécialité souhaitée :[/b] ' + v('specialite') + '\n[i][size=10](Se référer aux "[url=https://hct-intra.forumactif.com/t231-a-lire-conditions-des-departements-accreditations]Conditions des départements & Accréditations[/url]")[/size][/i]\n\n[b][u]Informations médicales:[/u][/b]\n\n[b]Port des lunettes de vue[/b]: ' + (v('lunettes') === 'Oui' ? 'OUI' : 'NON') + '\n[b]Œil gauche[/b]: ' + v('oeil_g') + '/10\n[b]Œil droit[/b]:  ' + v('oeil_d') + '/10\n\n[b]Traitement(s) particulier(s)[/b]:\n[size=10](Laissez vide si RAS)[/size]\n\n[b]Taille [/b][size=10](cm)[/size]:\n[b]Poids [/b][size=10](kg)[/size]:\n\n[b][u]Lettre de motivation:[/u][/b]\n[i][size=10](Vous rédigez une lettre de motivation dans laquelle vous expliquerez pourquoi postuler chez nous)[/size][/i]\n' + v('motivation') + '\n\n[right]Fait le ' + v('date_fait') + ' à ' + v('lieu_fait') + '\nSignature[/right]\n\n[spoiler="OOC"]\n[b]Serveur souhaité (#1 ou #2)[/b]: ' + v('serveur') + '\n[b]Avez-vous TeamSpeak 3 ?[/b] [i](obligaroire)[/i] : ' + v('ts3') + '\n[b]Anciens noms IG[/b]: ' + v('anciens_noms') + '\n[b]Lien de votre compte forum (GTACity RP)[/b]: ' + v('lien_forum') + '\n[b]Courte histoire du personnage[/b] [size=10](trois lignes)[/size]:\n[size=10](Histoire cohérente, impossibilité d\'avoir fait de l\'illégal)[/size]\n' + v('histoire') + '\n[/spoiler]\n\n[/td]\n[/tr]\n[/table]';
-            }
-        },
-
-        // -------- 5. CANDIDATURE CLASSIQUE --------
-        candidature_classique: {
-            name: 'Candidature Classique', icon: '📋',
-            desc: 'Format classique de candidature HCT avec informations personnelles, médicales, parcours professionnel et lettre de motivation.',
-            sections: [
-                {
-                    title: 'Informations personnelles', fields: infoPerso.concat([
-                        { id: 'casier', label: 'Casier judiciaire ?', type: 'select', options: ['Non', 'Oui'] },
-                        { id: 'situation', label: 'Situation familiale', type: 'select', options: ['Célibataire', 'Marié(e)', 'Divorcé(e)', 'En concubinage'] }
-                    ])
-                },
-                {
-                    title: 'Parcours professionnel & diplômes', fields: [
-                        { id: 'diplomes', label: 'Diplôme(s) obtenu(s)', cls: 'fw', ph: 'High School Diploma...' },
-                        { id: 'professions', label: 'Profession(s) ou poste antérieure(s)', type: 'textarea', rows: 2, cls: 'fw', ph: 'Si hôpital: établissement, année, poste' },
-                        { id: 'affectation', label: 'Affectation souhaitée', ph: 'Établissement hospitalier', cls: 'fw' }
-                    ]
-                },
-                { title: 'Informations médicales', fields: infoMedicale },
-                {
-                    title: 'Lettre de motivation', fields: [
-                        { id: 'motivation', label: 'Lettre de motivation', type: 'textarea', ph: 'Expliquez pourquoi postuler chez nous...', rows: 5, cls: 'fw' }
-                    ]
-                },
-                { title: 'Signature', fields: sigFields },
-                { title: 'OOC — Informations hors-jeu', fields: oocTS }
-            ],
-            generate: function () {
-                return '[table style="border:1px solid black; background-color:#ffffff; padding:10px; font-family:arial; color:#000000; width:100%;margin:auto;"]\n[tr][td][center][img(500px,250px)]https://zupimages.net/up/23/09/2rts.png[/img][/center]\n\n[size=16][center][b]DOSSIER DE CANDIDATURE[/b][/center]\n[/size]\n[hr]\n\n[b][u]Informations personnelles:[/u][/b]\n\n[b]Nom[/b]: ' + v('nom') + '\n[b]Prénom[/b]: ' + v('prenom') + '\n[b]Civilité[/b]: ' + v('civilite') + '\n[b]Nationalité[/b]: ' + v('nationalite') + '\n\n[b]Date de naissance[/b]: ' + v('ddn') + '\n[b]Lieu de naissance[/b]: ' + v('ldn') + '\n[b]Adresse[/b]: ' + v('adresse') + '\n\n[b]Permis possédé(s)[/b]: ' + v('permis') + '\n[b]Possédez vous un casier judiciaire[/b]: ' + (v('casier') === 'Oui' ? 'OUI' : 'NON') + '\n[b]Situation familiale[/b] : Marié(e) - Divorcé(e) - Célibataire - En concubinage [size=10](Rayez la mention inutile)[/size]\n\n[b][u]Parcours professionnel(s) et diplôme(s):[/u][/b]\n\n[b]Diplôme(s) obtenu(s)[/b]: ' + v('diplomes') + '\n\n[b]Profession(s) ou poste antérieure(s)[/b]: ' + v('professions') + '\n[i][size=10](Si employé dans un hôpital ou autre du domaine médical, précisez l\'établissement, l\'année et le poste)[/size][/i]\n\n[b]Affectation souhaité :[/b] ' + v('affectation') + '\n[i][size=10](Il s\'agit de l\'établissement hospitalier ou vous souhaitez être affecté)[/size][/i]\n\n[b][u]Informations médicales:[/u][/b]\n\n[b]Port des lunettes de vue[/b]: ' + (v('lunettes') === 'Oui' ? 'OUI' : 'NON') + '\n[b]Œil gauche[/b]: ' + v('oeil_g') + '/10\n[b]Œil droit[/b]:  ' + v('oeil_d') + '/10\n\n[b]Traitement(s) particulier(s)[/b]:\n[size=10](Laissez vide si RAS)[/size]\n\n[b]Taille [/b][size=10](cm)[/size]:\n[b]Poids [/b][size=10](kg)[/size]:\n\n[b][u]Lettre de motivation:[/u][/b]\n[i][size=10](Vous rédigez une lettre de motivation dans laquelle vous expliquerez pourquoi postuler chez nous)[/size][/i]\n' + v('motivation') + '\n\n[right]Fait le ' + v('date_fait') + ' à ' + v('lieu_fait') + '\nSignature[/right]\n\n[spoiler="OOC"]\n[b]Serveur souhaité (#1 ou #2)[/b]: ' + v('serveur') + '\n[b]Avez-vous TeamSpeak 3 ?[/b] [i](obligaroire)[/i] : ' + v('ts3') + '\n[b]Anciens noms IG[/b]: ' + v('anciens_noms') + '\n[b]Lien de votre compte forum (GTACity RP)[/b]: ' + v('lien_forum') + '\n[b]Courte histoire du personnage[/b] [size=10](trois lignes)[/size]:\n[size=10](Histoire cohérente, impossibilité d\'avoir fait de l\'illégal)[/size]\n' + v('histoire') + '\n[/spoiler]\n\n[/td]\n[/tr]\n[/table]';
-            }
-        },
-
-
-        // -------- 7. DEMANDE FORMATION --------
-        formation: {
-            name: 'Demande Formation', icon: '🏫',
-            desc: 'Formulaire de demande auprès de l\'organisme de formation HCT. Précisez le type de formation, les horaires et le lieu.',
-            sections: [
-                {
-                    title: 'Informations de la formation', fields: [
-                        { id: 'soussigne', label: 'Nom du soussigné', ph: 'NOM Prénom' },
-                        { id: 'type_formation', label: 'Type de formation', ph: 'Formation secourisme...' },
-                        { id: 'au_nom', label: 'Au nom de / du', ph: 'Organisation...', cls: 'fw' },
-                        { id: 'date_formation', label: 'Date de la formation', ph: 'XX/XX/XXXX' },
-                        { id: 'heure_debut', label: 'Horaire début', ph: 'XXhXX' },
-                        { id: 'heure_fin', label: 'Horaire fin', ph: 'XXhXX' },
-                        { id: 'presence_debut', label: 'Présence nécessaire à partir de', ph: 'XXhXX' },
-                        { id: 'presence_fin', label: 'Jusqu\'à / pendant', ph: 'XXhXX' },
-                        { id: 'lieu_formation', label: 'Lieu (adresse)', ph: 'Adresse complète', cls: 'fw' },
-                        { id: 'lien_docs', label: 'Lien documents relatifs', ph: '(lien)', cls: 'fw' }
-                    ]
-                },
-                {
-                    title: 'Signature', fields: [
-                        { id: 'signataire', label: 'NOM Prénom (signataire)', ph: 'NOM Prénom' },
-                        { id: 'date_fait', label: 'Fait le', ph: 'XX/XX/XXXX' },
-                        { id: 'lieu_fait', label: 'À', ph: 'Réponse' }
-                    ]
-                }
-            ],
-            generate: function () {
-                return '[table style="width:90%; margin: auto; background:#ffffff; color:#0b243e; font-size:20px"]\n[td style="font-family:Courier New; vertical-align:top;" width="90%"]<div style="border: solid; margin: -10px -10px -10px; box-shadow: 12px 12px 2px 1px #0b243e">\n[center][img(245px,242px)]https://zupimages.net/up/22/23/kij8.png[/img][/center]\n \n[center][size=21][b]DEMANDE A L\'ORGANISME DE FORMATION[/b][/size]\n [size=13]___________________________________________________[/size]\n[/center]\n\n[table style="width:90%; margin:10px 10px 30px 50px; background:#E5E8E8; color:#000000; font-size:11px; -moz-box-shadow: inset 0px 0px 2px 0px #000000; -webkit-box-shadow: inset 0px 0px 2px 0px #000000; -o-box-shadow: inset 0px 0px 2px 0px #fffff; box-shadow: inset 0px 0px 2px 0px #000000; filter:progid:DXImageTransform.Microsoft.Shadow(color=#000000, Direction=NaN, Strength=2);"]\n[tr][td style="font-family:Trebuchet MS; vertical-align:text-top;" width="90%"]<div style="margin-left:1em; margin-right:1em;">\n\n[size=13]Je soussigné ' + v('soussigne') + ', organisant une formation ' + v('type_formation') + ' au nom de/du ' + v('au_nom') + ', faire appel aux formateurs de l\'Hospital Corporation of Tennessee dans le cadre de la susdite formation.\n\nElle se déroulera le ' + v('date_formation') + ' de ' + v('heure_debut') + ' à ' + v('heure_fin') + '. Votre présence est nécessaire à partir de ' + v('presence_debut') + ' jusqu\'à ' + v('presence_fin') + '.\nLa formation aura lieu au ' + v('lieu_formation') + '.\n\nSi-join, voici les documents relatifs à la formation : ' + v('lien_docs') + '\n\nCordialement,\n' + v('signataire') + '.\n\n[right]Fait le ' + v('date_fait') + ' à ' + v('lieu_fait') + '.\nSignature[/right] [/size]\n\n<span style="width:100; float:left; display:inline-block;"><div class="candid-content" style="text-align:left;">\n </div style>\n </div></span>\n\n[/td]\n[/tr]\n\n[/table]\n[/td]\n[/tr]\n\n[/table]\n<br>';
-            }
-        },
-
-        // -------- 8. REINTEGRATION --------
-        reintegration: {
-            name: 'Réintégration', icon: '🔄',
-            desc: 'Dossier de réintégration pour les anciens membres souhaitant revenir au sein de l\'HCT. Inclut le parcours antérieur et la spécialité souhaitée.',
-            sections: [
-                {
-                    title: 'Informations personnelles', fields: infoPerso.slice(0, 6).concat([
-                        { id: 'adresse', label: 'Adresse', ph: 'Ex: 127 Fox Hollow Av., Townsend, TN', cls: 'fw' },
-                        { id: 'casier', label: 'Casier judiciaire ?', type: 'select', options: ['Non', 'Oui'] },
-                        { id: 'situation', label: 'Situation familiale', type: 'select', options: ['Célibataire', 'Marié(e)', 'Divorcé(e)', 'En concubinage'] }
-                    ])
-                },
-                {
-                    title: 'Parcours professionnel & diplômes', fields: [
-                        { id: 'diplomes', label: 'Diplôme(s) obtenu(s) et formation(s)', cls: 'fw', ph: 'Vos diplômes...' },
-                        { id: 'poste_ant', label: 'Poste antérieur(s)', type: 'textarea', rows: 2, cls: 'fw', ph: 'Établissement, année, poste' },
-                        { id: 'specialite', label: 'Spécialité(s) souhaitée(s)', ph: 'Impossible de combiner médical et paramédical', cls: 'fw' },
-                        { id: 'affectation', label: 'Affectation souhaitée', ph: 'Établissement hospitalier', cls: 'fw' }
-                    ]
-                },
-                {
-                    title: 'Lettre de motivation', fields: [
-                        { id: 'motivation', label: 'Lettre de motivation', type: 'textarea', ph: 'Pourquoi postuler chez nous ?', rows: 5, cls: 'fw' }
-                    ]
-                },
-                { title: 'Signature', fields: sigFields },
-                { title: 'OOC — Informations hors-jeu', fields: oocTS }
-            ],
-            generate: function () {
-                return '[table style="border:1px solid black; background-color:#ffffff; padding:10px; font-family:arial; color:#000000; width:100%;margin:auto;"]\n[tr][td][center][img(500px,250px)]https://zupimages.net/up/23/09/2rts.png[/img][/center]\n\n[center][b]DOSSIER DE RÉINTÉGRATION[/b][/center]\n\n\n[hr]\n[size=16]\n\n[b][u]Informations personnelles:[/u][/b]\n\n[b]Nom[/b]: ' + v('nom') + '\n[b]Prénom[/b]: ' + v('prenom') + '\n[b]Civilité[/b]: ' + v('civilite') + '\n[b]Nationalité[/b]: ' + v('nationalite') + '\n\n[b]Date de naissance[/b]: ' + v('ddn') + '\n[b]Lieu de naissance[/b]: ' + v('ldn') + '\n[b]Adresse[/b]: ' + v('adresse') + '\n\n[b]Possédez vous un casier judiciaire[/b]: ' + (v('casier') === 'Oui' ? 'OUI' : 'NON') + '\n[b]Situation familiale[/b] : Marié(e) - Divorcé(e) - Célibataire - En concubinage [size=10](Rayez la mention inutile)[/size]\n\n[b][u]Parcours professionnel(s) et diplôme(s):[/u][/b]\n\n[b]Diplôme(s) obtenu(s) et formation(s)[/b]: ' + v('diplomes') + '\n\n[color=#006600][b]Poste antérieure(s)[/b]: ' + v('poste_ant') + '[/color]\n[i][size=10](Employé dans le médical, précisez l\'établissement, l\'année et le poste)[/size][/i]\n\n[b]Spécialité(s) souhaité(e)[/b] [i][size=10](impossible de combiné médical et paramédical)[/size][/i] : ' + v('specialite') + '\n[size=10][i](comme stipulé dans la présentation, vous avez le droit à 2 spécialités. Si vous n\'en avez qu\'une et que vous êtes recruté dans l\'HCT, vous aurez le droit de vous spécialiser plus tard dans votre deuxième possibilité)[/i][/size]\n\n[b]Affectation souhaité :[/b] ' + v('affectation') + '\n[i][size=10](Il s\'agit de l\'établissement hospitalier ou vous souhaitez être affecté)[/size][/i]\n\n[b][u]Lettre de motivation:[/u][/b]\n[i][size=10](Vous rédigez une lettre de motivation dans laquelle vous expliquerez pourquoi postuler chez nous)[/size][/i]\n' + v('motivation') + '\n\n[/size]\n[right]Fait le ' + v('date_fait') + ' à ' + v('lieu_fait') + '\nSignature[/right]\n[size=16]\n\n[spoiler="OOC"]\n[b]Serveur souhaité (#1 ou #2)[/b]: ' + v('serveur') + '\n[b]Avez-vous TeamSpeak 3 ?[/b] [i](obligaroire)[/i] : ' + v('ts3') + '\n[b]Anciens noms IG[/b]: ' + v('anciens_noms') + '\n[b]Lien de votre compte forum (GTACity RP)[/b]: ' + v('lien_forum') + '\n\n[/spoiler]\n[/size][/td]\n[/tr]\n[/table]';
-            }
-        }
-
-    }; // end templates
-
-    // ============================================================
-    // CATEGORIES & RENDER NAV TABS
-    // ============================================================
-    var allKeys = ['internat', 'candidature', 'surete', 'medecin', 'candidature_classique', 'reintegration', 'formation'];
-    allKeys.forEach(function (key) {
-        var t = templates[key];
-        if (!t) return;
-        var btn = document.createElement('button');
-        btn.className = 'nav-tab';
-        btn.id = 'btn-' + key;
-        btn.textContent = t.name;
-        btn.addEventListener('click', function () { selectTemplate(key); });
-        tgEl.appendChild(btn);
-    });
-
-    // ============================================================
-    // SELECT TEMPLATE -> RENDER FORM
-    // ============================================================
-    function selectTemplate(key) {
-        activeTemplate = key;
-        var t = templates[key];
-        // Update active tab
-        document.querySelectorAll('.nav-tab').forEach(function (b) { b.classList.remove('active'); });
-        document.getElementById('btn-' + key).classList.add('active');
-        // Update hero title & subtitle
-        heroTitle.textContent = t.name;
-        heroSubtitle.textContent = 'Hospital Corporation of Tennessee';
-        if (heroDesc) heroDesc.style.display = 'none';
-        if (welcomeSection) welcomeSection.classList.add('hidden');
-        // Build template info banner + form
-        var html = '<div class="template-info-banner">';
-        html += '<div class="template-info-icon">' + t.icon + '</div>';
-        html += '<div class="template-info-content">';
-        html += '<div class="template-info-name">' + t.name + '</div>';
-        html += '<div class="template-info-desc">' + (t.desc || '') + '</div>';
-        html += '<div class="template-info-meta">';
-        html += '<span>📄 ' + t.sections.length + ' sections</span>';
-        var totalFields = 0; t.sections.forEach(function(s) { totalFields += s.fields.length; });
-        html += '<span>✍️ ' + totalFields + ' champs</span>';
-        html += '<span>⏱️ ~' + Math.max(2, Math.ceil(totalFields / 4)) + ' min</span>';
-        html += '</div></div></div>';
-        t.sections.forEach(function (sec) {
-            html += '<div class="fs"><div class="fst">' + sec.title + '</div><div class="fg">';
-            sec.fields.forEach(function (f) {
-                html += fieldHTML(f, f.cls || '');
-            });
-            html += '</div></div>';
         });
-        fcEl.innerHTML = html;
-        formCard.style.display = 'block';
-        // Hide previous output
-        outputArea.style.display = 'none';
-        previewCard.style.display = 'none';
-        // Smooth scroll to top
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
 
-    // ============================================================
-    // GENERATE BBCODE
-    // ============================================================
-    window.generateBBCode = function () {
-        if (!activeTemplate) return;
-        var code = templates[activeTemplate].generate();
-        bbOutput.value = code;
-        outputArea.style.display = 'block';
-        // Preview - parse BBCode directly without escaping HTML
-        previewCard.style.display = 'block';
-        previewEl.innerHTML = parseBBCode(code);
-        outputArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        showToast('BBCode généré avec succès !');
-    };
-
-    // ============================================================
-    // COPY - uses execCommand as primary (works on file:// protocol)
-    // ============================================================
-    window.copyBBCode = function () {
-        var text = bbOutput.value;
-        if (!text.trim()) { showToast('Rien à copier !', true); return; }
-        // Method 1: select textarea + execCommand (works everywhere)
-        bbOutput.select();
-        bbOutput.setSelectionRange(0, 999999);
-        var ok = false;
-        try { ok = document.execCommand('copy'); } catch (e) { }
-        if (ok) {
-            showToast('BBCode copié dans le presse-papiers !');
-            return;
-        }
-        // Method 2: Clipboard API fallback
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(function () {
-                showToast('BBCode copié dans le presse-papiers !');
-            }).catch(function () {
-                showToast('Erreur : impossible de copier', true);
-            });
-        } else {
-            showToast('Erreur : impossible de copier', true);
-        }
-    };
-
-    // ============================================================
-    // CLEAR
-    // ============================================================
-    window.clearAll = function () {
-        bbOutput.value = '';
-        outputArea.style.display = 'none';
-        previewCard.style.display = 'none';
-        fcEl.querySelectorAll('input, textarea, select').forEach(function (el) {
-            if (el.tagName === 'SELECT') el.selectedIndex = 0;
-            else el.value = '';
+        // Close mobile menu on window resize (if user rotates device or resizes)
+        window.addEventListener('resize', function () {
+            if (window.innerWidth > 768) {
+                var tabs = document.getElementById('tg-container');
+                var hamburger = document.getElementById('hamburger-btn');
+                var overlay = document.getElementById('mobile-overlay');
+                tabs.classList.remove('open');
+                hamburger.classList.remove('open');
+                overlay.classList.remove('show');
+                document.body.style.overflow = '';
+            }
         });
-        showToast('Formulaire réinitialisé.');
-    };
 
-    // ============================================================
-    // GO HOME (reset to initial state)
-    // ============================================================
-    window.goHome = function () {
-        activeTemplate = null;
-        document.querySelectorAll('.nav-tab').forEach(function (b) { b.classList.remove('active'); });
-        formCard.style.display = 'none';
-        outputArea.style.display = 'none';
-        previewCard.style.display = 'none';
-        heroTitle.textContent = 'Générateur BBCode';
-        heroSubtitle.textContent = 'Hospital Corporation of Tennessee';
-        if (heroDesc) heroDesc.style.display = '';
-        if (welcomeSection) welcomeSection.classList.remove('hidden');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    // ============================================================
-    // TOAST
-    // ============================================================
-    var toastTimer = null;
-    function showToast(msg, isErr) {
-        toastMsg.textContent = msg;
-        toastEl.style.borderColor = isErr ? 'var(--danger)' : 'var(--success)';
-        toastEl.style.color = isErr ? 'var(--danger)' : 'var(--success)';
-        toastEl.classList.add('show');
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 2500);
-    }
-
-    // ============================================================
-    // BBCODE PREVIEW PARSER (no HTML escaping — renders cleanly)
-    // ============================================================
-    function parseBBCode(s) {
-        // Convert newlines
-        s = s.replace(/\n/g, '<br>');
-        // Basic formatting
-        s = s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '<strong>$1</strong>');
-        s = s.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '<em>$1</em>');
-        s = s.replace(/\[u\]([\s\S]*?)\[\/u\]/gi, '<u>$1</u>');
-        s = s.replace(/\[s\]([\s\S]*?)\[\/s\]/gi, '<s>$1</s>');
-        // Alignment
-        s = s.replace(/\[center\]([\s\S]*?)\[\/center\]/gi, '<div style="text-align:center">$1</div>');
-        s = s.replace(/\[left\]([\s\S]*?)\[\/left\]/gi, '<div style="text-align:left">$1</div>');
-        s = s.replace(/\[right\]([\s\S]*?)\[\/right\]/gi, '<div style="text-align:right">$1</div>');
-        // Size (run multiple passes for nested [size] tags)
-        for (var pass = 0; pass < 3; pass++) {
-            s = s.replace(/\[size=(\d+)\]([\s\S]*?)\[\/size\]/gi, '<span style="font-size:$1px">$2</span>');
+        // ========== THEME TOGGLE ==========
+        function toggleTheme() {
+            var html = document.documentElement;
+            var btn = document.getElementById('theme-toggle');
+            if (html.getAttribute('data-theme') === 'light') {
+                html.removeAttribute('data-theme');
+                btn.textContent = '🌙';
+                localStorage.setItem('hct-theme', 'dark');
+            } else {
+                html.setAttribute('data-theme', 'light');
+                btn.textContent = '☀️';
+                localStorage.setItem('hct-theme', 'light');
+            }
         }
-        // Color
-        s = s.replace(/\[color=([^\]]+)\]([\s\S]*?)\[\/color\]/gi, '<span style="color:$1">$2</span>');
-        // URLs
-        s = s.replace(/\[url=([^\]]+)\]([\s\S]*?)\[\/url\]/gi, '<a href="$1" target="_blank" style="color:#0e7490">$2</a>');
-        s = s.replace(/\[url\]([\s\S]*?)\[\/url\]/gi, '<a href="$1" target="_blank" style="color:#0e7490">$1</a>');
-        // Images
-        s = s.replace(/\[img\(([^,]+),([^)]+)\)\]([\s\S]*?)\[\/img\]/gi, '<img src="$3" style="width:$1;height:$2" alt="">');
-        s = s.replace(/\[img\]([\s\S]*?)\[\/img\]/gi, '<img src="$1" alt="">');
-        // Horizontal rule
-        s = s.replace(/\[hr\]/gi, '<hr>');
-        // Hide
-        s = s.replace(/\[hide\]([\s\S]*?)\[\/hide\]/gi, '<div style="border:1px dashed #999;padding:10px;margin:5px 0;border-radius:4px"><small style="color:#666">▼ Contenu masqué (hide)</small>$1</div>');
-        // Spoiler (handle both " and &quot; for quotes)
-        s = s.replace(/\[spoiler="([^"]*)"\]([\s\S]*?)\[\/spoiler\]/gi, '<div class="sb"><div class="sh" onclick="this.nextElementSibling.classList.toggle(\'open\')">▶ $1</div><div class="sc">$2</div></div>');
-        s = s.replace(/\[spoiler\]([\s\S]*?)\[\/spoiler\]/gi, '<div class="sb"><div class="sh" onclick="this.nextElementSibling.classList.toggle(\'open\')">▶ Spoiler</div><div class="sc">$1</div></div>');
-        // Table with style (handle raw quotes)
-        s = s.replace(/\[table style="([^"]*)"\]/gi, '<table style="$1">');
-        s = s.replace(/\[table\]/gi, '<table style="border:1px solid #ccc;width:100%;border-collapse:collapse">');
-        s = s.replace(/\[\/table\]/gi, '</table>');
-        // Table rows & cells
-        s = s.replace(/\[tr\]/gi, '<tr>');
-        s = s.replace(/\[\/tr\]/gi, '</tr>');
-        s = s.replace(/\[td style="([^"]*)"\]/gi, '<td style="$1;padding:8px">');
-        s = s.replace(/\[td([^\]]*)\]/gi, '<td$1 style="padding:8px">');
-        s = s.replace(/\[\/td\]/gi, '</td>');
-        return s;
-    }
 
-})();
+        // Restore saved theme
+        (function () {
+            var saved = localStorage.getItem('hct-theme');
+            if (saved === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                var btn = document.getElementById('theme-toggle');
+                if (btn) btn.textContent = '☀️';
+            }
+        })();
+        // ========== SCROLL REVEAL ANIMATIONS ==========
+        (function () {
+            var revealElements = document.querySelectorAll('.feature-card, .stat-item, .cta-hint, .reveal, .reveal-left, .reveal-scale');
+            if (!('IntersectionObserver' in window)) {
+                // Fallback: show everything immediately
+                revealElements.forEach(function (el) { el.classList.add('visible'); });
+                return;
+            }
+            var observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.15, rootMargin: '0px 0px -30px 0px' });
+            revealElements.forEach(function (el) { observer.observe(el); });
+        })();
+    </script>
+</body>
+
+</html>
