@@ -101,6 +101,7 @@
         // -------- 1. INTERNAT --------
         internat: {
             name: 'Candidature Internat', icon: '🎓',
+            desc: 'Dossier complet pour postuler en tant qu\'interne médical. Inclut les informations personnelles, médicales, des questions d\'automatisme et une mise en situation.',
             sections: [
                 { title: 'Informations personnelles', fields: infoPerso },
                 {
@@ -135,6 +136,7 @@
         // -------- 2. CANDIDATURE GENERALE (nouveau branding) --------
         candidature: {
             name: 'Candidature Générale', icon: '📝',
+            desc: 'Dossier de candidature standard pour rejoindre l\'HCT. Contient les informations personnelles, le parcours professionnel et une lettre de motivation.',
             sections: [
                 {
                     title: 'Informations personnelles', fields: infoPerso.concat([
@@ -165,6 +167,7 @@
         // -------- 3. SURETE HOSPITALIERE --------
         surete: {
             name: 'Candidature Sûreté', icon: '🛡️',
+            desc: 'Candidature spécifique pour le département de sûreté hospitalière. Inclut les informations médicales et une lettre de motivation détaillée.',
             sections: [
                 {
                     title: 'Informations personnelles', fields: infoPerso.concat([
@@ -203,6 +206,7 @@
         // -------- 4. CANDIDATURE MEDECIN (avec spécialité) --------
         medecin: {
             name: 'Candidature Médecin', icon: '🩺',
+            desc: 'Candidature médicale avec choix de spécialité et d\'affectation. Référez-vous aux conditions des départements pour les spécialités disponibles.',
             sections: [
                 {
                     title: 'Informations personnelles', fields: infoPerso.concat([
@@ -235,6 +239,7 @@
         // -------- 5. CANDIDATURE CLASSIQUE --------
         candidature_classique: {
             name: 'Candidature Classique', icon: '📋',
+            desc: 'Format classique de candidature HCT avec informations personnelles, médicales, parcours professionnel et lettre de motivation.',
             sections: [
                 {
                     title: 'Informations personnelles', fields: infoPerso.concat([
@@ -267,6 +272,7 @@
         // -------- 7. DEMANDE FORMATION --------
         formation: {
             name: 'Demande Formation', icon: '🏫',
+            desc: 'Formulaire de demande auprès de l\'organisme de formation HCT. Précisez le type de formation, les horaires et le lieu.',
             sections: [
                 {
                     title: 'Informations de la formation', fields: [
@@ -298,6 +304,7 @@
         // -------- 8. REINTEGRATION --------
         reintegration: {
             name: 'Réintégration', icon: '🔄',
+            desc: 'Dossier de réintégration pour les anciens membres souhaitant revenir au sein de l\'HCT. Inclut le parcours antérieur et la spécialité souhaitée.',
             sections: [
                 {
                     title: 'Informations personnelles', fields: infoPerso.slice(0, 6).concat([
@@ -358,8 +365,18 @@
         heroSubtitle.textContent = 'Hospital Corporation of Tennessee';
         if (heroDesc) heroDesc.style.display = 'none';
         if (welcomeSection) welcomeSection.classList.add('hidden');
-        // Build form
-        var html = '';
+        // Build template info banner + form
+        var html = '<div class="template-info-banner">';
+        html += '<div class="template-info-icon">' + t.icon + '</div>';
+        html += '<div class="template-info-content">';
+        html += '<div class="template-info-name">' + t.name + '</div>';
+        html += '<div class="template-info-desc">' + (t.desc || '') + '</div>';
+        html += '<div class="template-info-meta">';
+        html += '<span>📄 ' + t.sections.length + ' sections</span>';
+        var totalFields = 0; t.sections.forEach(function(s) { totalFields += s.fields.length; });
+        html += '<span>✍️ ' + totalFields + ' champs</span>';
+        html += '<span>⏱️ ~' + Math.max(2, Math.ceil(totalFields / 4)) + ' min</span>';
+        html += '</div></div></div>';
         t.sections.forEach(function (sec) {
             html += '<div class="fs"><div class="fst">' + sec.title + '</div><div class="fg">';
             sec.fields.forEach(function (f) {
@@ -372,8 +389,8 @@
         // Hide previous output
         outputArea.style.display = 'none';
         previewCard.style.display = 'none';
-        // Smooth scroll
-        formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Smooth scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // ============================================================
